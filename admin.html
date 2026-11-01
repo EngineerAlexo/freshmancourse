@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - Study Notes Upload & Materials Manager</title>
+  <meta name="description" content="Secure administrator dashboard to manage and upload HTML chapters 1-6 and questions.">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <div class="container navbar-inner">
+      <a href="index.html" class="brand">
+        <div class="brand-icon" style="background: linear-gradient(135deg, #0f766e 0%, #1e40af 100%);">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">Study Notes Admin</span>
+          <span class="brand-subtitle">Chapters 1-6 & Questions Manager</span>
+        </div>
+      </a>
+
+      <div class="nav-links">
+        <a href="index.html" class="nav-link">&larr; Back to Student Site</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container admin-page">
+
+    <!-- 1. AUTHENTICATION SECTION (Visible when logged out) -->
+    <section id="auth-section" class="auth-card-container">
+      <div class="auth-card">
+        <div class="auth-header">
+          <div class="brand-icon" style="margin: 0 auto 16px auto; width: 48px; height: 48px;">
+            <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <h1 class="auth-title">Admin Sign In</h1>
+          <p class="auth-subtitle">Upload chapters (1-6) and model questions to Supabase</p>
+        </div>
+
+        <!-- Auth Error Banner -->
+        <div id="auth-error" class="alert-banner error" style="display: none; margin-bottom: 20px;"></div>
+
+        <form id="login-form">
+          <div class="form-group">
+            <label class="form-label" for="login-email">Email Address</label>
+            <input 
+              type="email" 
+              id="login-email" 
+              class="form-input" 
+              placeholder="engineerhaile1@gmail.com" 
+              required
+              autocomplete="email"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="login-password">Password</label>
+            <input 
+              type="password" 
+              id="login-password" 
+              class="form-input" 
+              placeholder="••••••••••••" 
+              required
+              autocomplete="current-password"
+            />
+          </div>
+
+          <button type="submit" id="login-btn" class="btn btn-primary" style="width: 100%; margin-top: 8px;">
+            Sign In to Admin Dashboard
+          </button>
+        </form>
+
+        <div style="margin-top: 24px; font-size: 0.8rem; color: var(--text-muted); text-align: center; line-height: 1.5;">
+          🔒 Secure upload enabled with Supabase Storage policies on bucket <code>chapter-files</code>.
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. DASHBOARD SECTION (Visible when logged in) -->
+    <section id="dashboard-section" style="display: none;">
+      <!-- Dashboard Top Bar -->
+      <div class="admin-header">
+        <div>
+          <h1 style="font-size: 1.75rem; font-weight: 800; color: var(--text-main);">Study Notes & Questions Publisher</h1>
+          <p style="font-size: 0.95rem; color: var(--text-muted); margin-top: 4px;">
+            Upload or replace Chapter 1, 2, 3, 4, 5, 6... and Question HTML files directly in Supabase Storage.
+          </p>
+        </div>
+
+        <div class="admin-user-info">
+          <div class="user-avatar" title="Administrator">A</div>
+          <div>
+            <div id="admin-email-display" class="user-email">admin@example.com</div>
+            <div class="user-role">Authorized Administrator</div>
+          </div>
+          <button id="logout-btn" class="btn btn-secondary btn-sm" style="margin-left: 12px;">
+            Sign Out
+          </button>
+        </div>
+      </div>
+
+      <!-- Upload Panel -->
+      <div class="upload-card">
+        <div class="upload-card-header">
+          <h2 class="upload-card-title">Upload & Replace Document</h2>
+          <p class="upload-card-desc">
+            Select the target document type below. Uploading will replace the previous version in the <code>chapter-files</code> bucket using <code>upsert: true</code> so students always see the newest notes.
+          </p>
+        </div>
+
+        <!-- Target Document Selection Dropdown -->
+        <div class="form-group">
+          <label class="form-label" for="target-file-select">Target Document</label>
+          <select id="target-file-select" class="form-input" style="font-weight: 600;">
+            <optgroup label="Course Chapters">
+              <option value="chapter-1.html">Chapter 1 Notes (chapter-1.html)</option>
+              <option value="chapter-2.html">Chapter 2 Notes (chapter-2.html)</option>
+              <option value="chapter-3.html">Chapter 3 Notes (chapter-3.html)</option>
+              <option value="chapter-4.html">Chapter 4 Notes (chapter-4.html)</option>
+              <option value="chapter-5.html">Chapter 5 Notes (chapter-5.html)</option>
+              <option value="chapter-6.html">Chapter 6 Notes (chapter-6.html)</option>
+            </optgroup>
+            <optgroup label="Questions & Exams">
+              <option value="questions.html">Model Questions & Practice (questions.html)</option>
+              <option value="chapter-1-questions.html">Chapter 1 Questions (chapter-1-questions.html)</option>
+              <option value="chapter-2-questions.html">Chapter 2 Questions (chapter-2-questions.html)</option>
+            </optgroup>
+            <optgroup label="Other">
+              <option value="original">Keep Uploaded File Name</option>
+              <option value="custom">Custom File Name...</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <!-- Custom Target Name Input (Hidden by default) -->
+        <div id="custom-target-group" class="form-group" style="display: none;">
+          <label class="form-label" for="custom-file-name">Custom File Name (must end with .html)</label>
+          <input type="text" id="custom-file-name" class="form-input" placeholder="e.g. final_exam_review.html" />
+        </div>
+
+        <!-- Target Summary Pill -->
+        <div id="target-summary-display" style="font-size: 0.85rem; color: var(--teal-700); background: var(--teal-50); border: 1px solid var(--teal-100); padding: 8px 14px; border-radius: var(--radius-sm); margin-bottom: 20px;">
+          Target storage path: chapter-1.html (in bucket "chapter-files")
+        </div>
+
+        <!-- Feedback Alert Banner -->
+        <div id="upload-alert" class="alert-banner" style="display: none; margin-bottom: 20px;"></div>
+
+        <!-- Drag & Drop Area -->
+        <div id="dropzone" class="dropzone">
+          <svg class="dropzone-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          </svg>
+          <div class="dropzone-title">Drag and drop your HTML file here</div>
+          <div class="dropzone-hint">Supports: .html and .htm files</div>
+          <div style="margin-top: 14px;">
+            <button type="button" id="select-file-btn" class="btn btn-secondary btn-sm">
+              Browse Computer
+            </button>
+            <input type="file" id="file-input" accept=".html,.htm" style="display: none;" />
+          </div>
+        </div>
+
+        <!-- Selected File Preview Pill -->
+        <div id="file-preview-pill" class="file-preview-pill">
+          <div class="file-preview-info">
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="color: var(--teal-600);">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <div>
+              <div id="file-name-display" class="file-preview-name">chapter.html</div>
+              <div id="file-size-display" class="file-preview-size">0 KB</div>
+            </div>
+          </div>
+          <button type="button" id="remove-file-btn" class="btn btn-secondary btn-sm" title="Remove selected file">
+            &times; Remove
+          </button>
+        </div>
+
+        <!-- Progress Indicator -->
+        <div id="progress-container" class="progress-container">
+          <div class="progress-bar-bg">
+            <div id="progress-bar" class="progress-bar-fill"></div>
+          </div>
+          <div class="progress-status">
+            <span id="progress-text">Ready to upload...</span>
+            <span id="progress-percent">0%</span>
+          </div>
+        </div>
+
+        <!-- Action Button -->
+        <button id="upload-btn" class="btn btn-primary" disabled style="width: 100%;">
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+          </svg>
+          Upload and Publish to Supabase Storage
+        </button>
+      </div>
+
+      <!-- Materials List Table Card -->
+      <div class="upload-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <div>
+            <h2 class="upload-card-title">Published Materials in Storage</h2>
+            <p class="upload-card-desc">All HTML files currently available in the <code>chapter-files</code> bucket.</p>
+          </div>
+          <button id="refresh-files-btn" class="btn btn-secondary btn-sm">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Refresh List
+          </button>
+        </div>
+
+        <div id="files-table-loading" style="text-align: center; padding: 24px; color: var(--text-muted);">
+          <div class="spinner" style="margin: 0 auto 10px auto;"></div>
+          Loading materials from Supabase Storage...
+        </div>
+
+        <div id="files-table-empty" style="display: none; text-align: center; padding: 24px; color: var(--text-muted);">
+          No files found in bucket <code>chapter-files</code>. Upload your first chapter using the form above.
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+            <thead>
+              <tr style="border-bottom: 2px solid var(--border-color); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">
+                <th style="padding: 10px 12px;">Material Title / File</th>
+                <th style="padding: 10px 12px;">Type</th>
+                <th style="padding: 10px 12px;">Size</th>
+                <th style="padding: 10px 12px;">Last Modified</th>
+                <th style="padding: 10px 12px; text-align: right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="files-table-body">
+              <!-- Rendered dynamically by admin.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; Study Notes - University Educational Platform. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- Supabase CDN Library (Official v2) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- Project Scripts -->
+  <script src="js/supabase.js"></script>
+  <script src="js/admin.js"></script>
+
+</body>
+</html>

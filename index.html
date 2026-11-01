@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Study Notes - University Freshman Educational Notes & Questions</title>
+  <meta name="description" content="Access and read university freshman study notes, chapters 1-6, and model exam questions online.">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <div class="container navbar-inner">
+      <a href="index.html" class="brand">
+        <div class="brand-icon">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">Study Notes</span>
+          <span class="brand-subtitle">Freshman Ethiopian University Notes</span>
+        </div>
+      </a>
+
+      <div class="nav-links">
+        <span class="nav-badge">Free Student Access</span>
+        <a href="admin.html" class="nav-link">Admin Portal &rarr;</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Student View -->
+  <main class="container">
+
+    <!-- Hero Header -->
+    <section class="hero-section">
+      <div class="hero-pill">
+        <span>📖 University Study Library</span>
+      </div>
+      <h1 class="hero-title">Interactive Study Notes & Questions</h1>
+      <p class="hero-description">
+        Read published course chapters (Chapter 1, 2, 3, 4, 5, 6...) and review model exam questions with interactive explanations and translations.
+      </p>
+
+      <!-- Search & Filter Bar -->
+      <div class="search-wrapper">
+        <svg class="search-icon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input 
+          type="search" 
+          id="search-input" 
+          class="search-input" 
+          placeholder="Search by chapter number, topic, or model questions..."
+          aria-label="Search study notes"
+        />
+      </div>
+    </section>
+
+    <!-- Category Tabs -->
+    <div style="display: flex; justify-content: center; gap: 8px; margin-bottom: 28px; flex-wrap: wrap;">
+      <button class="filter-tab active btn btn-secondary btn-sm" data-filter="all">All Materials</button>
+      <button class="filter-tab btn btn-secondary btn-sm" data-filter="chapter">Course Chapters</button>
+      <button class="filter-tab btn btn-secondary btn-sm" data-filter="questions">Questions & Exams</button>
+    </div>
+
+    <!-- Available Notes Section -->
+    <section class="chapters-section">
+      <div class="section-header">
+        <h2 class="section-title">Published Materials</h2>
+        <span id="materials-count-badge" class="text-muted" style="font-size: 0.875rem;">Loading materials...</span>
+      </div>
+
+      <!-- Loading State -->
+      <div id="materials-loading" class="state-overlay" style="position: static; padding: 48px 0; background: transparent;">
+        <div class="spinner"></div>
+        <div class="state-title">Checking Supabase Storage...</div>
+        <p class="state-desc">Retrieving uploaded chapters and questions.</p>
+      </div>
+
+      <!-- Empty State -->
+      <div id="materials-empty" class="state-overlay" style="display: none; position: static; padding: 48px 0; background: transparent;">
+        <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="#94a3b8" stroke-width="1.5" style="margin-bottom: 12px;">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+        </svg>
+        <div class="state-title">No Notes Uploaded Yet</div>
+        <p class="state-desc">The instructor has not published any HTML study notes or questions yet.</p>
+      </div>
+
+      <!-- Dynamic Materials Grid -->
+      <div class="chapter-grid" id="materials-container">
+        <!-- Dynamic Cards Inserted Here by student.js -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Fullscreen Interactive Notes Reader Overlay -->
+  <section id="reader-view" aria-label="Notes Reader">
+    <header class="reader-header">
+      <div class="reader-title-group">
+        <button id="back-btn" class="btn btn-secondary btn-sm" title="Back to Study Notes Homepage">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Back
+        </button>
+        <span id="reader-title" class="reader-title">Study Notes Document</span>
+      </div>
+
+      <div class="reader-controls">
+        <button id="reload-btn" class="btn btn-secondary btn-sm" title="Force reload latest version from storage">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Refresh
+        </button>
+        <button id="fullscreen-btn" class="btn btn-secondary btn-sm" title="Toggle Fullscreen">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+          </svg>
+          Fullscreen
+        </button>
+      </div>
+    </header>
+
+    <!-- Embedded Reader Container -->
+    <div class="reader-iframe-container">
+      <!-- Loading State Overlay -->
+      <div id="reader-loading" class="state-overlay">
+        <div class="spinner"></div>
+        <div class="state-title">Loading Document...</div>
+        <p class="state-desc">Fetching the latest HTML notes from Supabase Storage.</p>
+      </div>
+
+      <!-- Error State Overlay -->
+      <div id="reader-error" class="state-overlay" style="display: none;">
+        <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="#dc2626" stroke-width="2" style="margin-bottom: 12px;">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+        <div class="state-title">Document Currently Unavailable</div>
+        <p id="reader-error-message" class="state-desc">
+          Unable to load the selected file from Supabase Storage.
+        </p>
+        <div style="display: flex; gap: 10px;">
+          <button id="retry-load-btn" class="btn btn-primary btn-sm">Try Again</button>
+          <button onclick="document.getElementById('back-btn').click()" class="btn btn-secondary btn-sm">Return to Materials</button>
+        </div>
+      </div>
+
+      <!-- Iframe with Sandbox Security -->
+      <iframe 
+        id="reader-iframe" 
+        class="reader-iframe" 
+        sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+        title="Study Notes Document Reader"
+      ></iframe>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; Study Notes - University Educational Platform. All rights reserved.</p>
+      <p style="margin-top: 6px; font-size: 0.8rem;">
+        Are you an instructor or admin? <a href="admin.html" style="color: var(--primary-600); text-decoration: none; font-weight: 600;">Sign in to upload notes & questions</a>
+      </p>
+    </div>
+  </footer>
+
+  <!-- Supabase CDN Library (Official v2) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- Project Scripts -->
+  <script src="js/supabase.js"></script>
+  <script src="js/student.js"></script>
+
+</body>
+</html>

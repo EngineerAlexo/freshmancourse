@@ -1,0 +1,10 @@
+# Environment files
+.env
+*.env
+js/.env
+
+# OS / Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
