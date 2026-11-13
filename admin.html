@@ -1,14 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Dashboard - Study Notes Upload & Materials Manager</title>
-  <meta name="description" content="Secure administrator dashboard to manage and upload HTML chapters 1-6 and questions.">
-  
+  <title>Smart Admin Portal - Freshman Ethiopia Study Notes & Materials</title>
+  <meta name="description"
+    content="Intelligent document publisher with auto subject detection, live preview, multi-format upload, and materials management.">
+
   <!-- CSS Stylesheet -->
   <link rel="stylesheet" href="css/style.css">
 </head>
+
 <body>
 
   <!-- Navigation Bar -->
@@ -17,12 +20,13 @@
       <a href="index.html" class="brand">
         <div class="brand-icon" style="background: linear-gradient(135deg, #0f766e 0%, #1e40af 100%);">
           <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
           </svg>
         </div>
         <div class="brand-text">
           <span class="brand-title">Study Notes Admin</span>
-          <span class="brand-subtitle">Chapters 1-6 & Questions Manager</span>
+          <span class="brand-subtitle">Smart Publisher & Materials Manager</span>
         </div>
       </a>
 
@@ -40,11 +44,12 @@
         <div class="auth-header">
           <div class="brand-icon" style="margin: 0 auto 16px auto; width: 48px; height: 48px;">
             <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
           <h1 class="auth-title">Admin Sign In</h1>
-          <p class="auth-subtitle">Upload chapters (1-6) and model questions to Supabase</p>
+          <p class="auth-subtitle">Publish and organize Ethiopian Freshman notes and questions</p>
         </div>
 
         <!-- Auth Error Banner -->
@@ -53,26 +58,14 @@
         <form id="login-form">
           <div class="form-group">
             <label class="form-label" for="login-email">Email Address</label>
-            <input 
-              type="email" 
-              id="login-email" 
-              class="form-input" 
-              placeholder="engineerhaile1@gmail.com" 
-              required
-              autocomplete="email"
-            />
+            <input type="email" id="login-email" class="form-input" placeholder="engineerhaile1@gmail.com" required
+              autocomplete="email" />
           </div>
 
           <div class="form-group">
             <label class="form-label" for="login-password">Password</label>
-            <input 
-              type="password" 
-              id="login-password" 
-              class="form-input" 
-              placeholder="••••••••••••" 
-              required
-              autocomplete="current-password"
-            />
+            <input type="password" id="login-password" class="form-input" placeholder="••••••••••••" required
+              autocomplete="current-password" />
           </div>
 
           <button type="submit" id="login-btn" class="btn btn-primary" style="width: 100%; margin-top: 8px;">
@@ -80,20 +73,22 @@
           </button>
         </form>
 
-        <div style="margin-top: 24px; font-size: 0.8rem; color: var(--text-muted); text-align: center; line-height: 1.5;">
-          🔒 Secure upload enabled with Supabase Storage policies on bucket <code>chapter-files</code>.
+        <div
+          style="margin-top: 24px; font-size: 0.8rem; color: var(--text-muted); text-align: center; line-height: 1.5;">
+          🔒 Connected to Supabase Project • Secure RLS on Storage & Metadata
         </div>
       </div>
     </section>
 
     <!-- 2. DASHBOARD SECTION (Visible when logged in) -->
     <section id="dashboard-section" style="display: none;">
+
       <!-- Dashboard Top Bar -->
       <div class="admin-header">
         <div>
-          <h1 style="font-size: 1.75rem; font-weight: 800; color: var(--text-main);">Study Notes & Questions Publisher</h1>
+          <h1 style="font-size: 1.75rem; font-weight: 800; color: var(--text-main);">Smart Document Publisher</h1>
           <p style="font-size: 0.95rem; color: var(--text-muted); margin-top: 4px;">
-            Upload or replace Chapter 1, 2, 3, 4, 5, 6... and Question HTML files directly in Supabase Storage.
+            Upload learning materials, automatically identify subject & chapter, preview live content, and publish.
           </p>
         </div>
 
@@ -109,163 +104,452 @@
         </div>
       </div>
 
-      <!-- Upload Panel -->
+      <!-- 3-Step Publisher Workflow Card -->
       <div class="upload-card">
-        <div class="upload-card-header">
-          <h2 class="upload-card-title">Upload & Replace Document</h2>
-          <p class="upload-card-desc">
-            Select the target document type below. Uploading will replace the previous version in the <code>chapter-files</code> bucket using <code>upsert: true</code> so students always see the newest notes.
-          </p>
+
+        <!-- Step Navigation Pill Header -->
+        <div class="publisher-steps">
+          <div class="publisher-step-item active" id="step-pill-1">
+            <span class="publisher-step-badge">1</span>
+            <span>Select Files (HTML & Images)</span>
+          </div>
+          <div class="publisher-step-divider"></div>
+          <div class="publisher-step-item active" id="step-pill-2">
+            <span class="publisher-step-badge">2</span>
+            <span>Document Information</span>
+          </div>
+          <div class="publisher-step-divider"></div>
+          <div class="publisher-step-item active" id="step-pill-3">
+            <span class="publisher-step-badge">3</span>
+            <span>Preview & Publish</span>
+          </div>
         </div>
 
-        <!-- Target Document Selection Dropdown -->
-        <div class="form-group">
-          <label class="form-label" for="target-file-select">Target Document</label>
-          <select id="target-file-select" class="form-input" style="font-weight: 600;">
-            <optgroup label="Course Chapters">
-              <option value="chapter-1.html">Chapter 1 Notes (chapter-1.html)</option>
-              <option value="chapter-2.html">Chapter 2 Notes (chapter-2.html)</option>
-              <option value="chapter-3.html">Chapter 3 Notes (chapter-3.html)</option>
-              <option value="chapter-4.html">Chapter 4 Notes (chapter-4.html)</option>
-              <option value="chapter-5.html">Chapter 5 Notes (chapter-5.html)</option>
-              <option value="chapter-6.html">Chapter 6 Notes (chapter-6.html)</option>
-            </optgroup>
-            <optgroup label="Questions & Exams">
-              <option value="questions.html">Model Questions & Practice (questions.html)</option>
-              <option value="chapter-1-questions.html">Chapter 1 Questions (chapter-1-questions.html)</option>
-              <option value="chapter-2-questions.html">Chapter 2 Questions (chapter-2-questions.html)</option>
-            </optgroup>
-            <optgroup label="Other">
-              <option value="original">Keep Uploaded File Name</option>
-              <option value="custom">Custom File Name...</option>
-            </optgroup>
-          </select>
+        <!-- Multiple Files Queue Bar (Visible when files are added) -->
+        <div id="queue-container" style="display: none;">
+          <div
+            style="font-size: 0.825rem; font-weight: 700; color: var(--teal-700); margin-bottom: 8px; text-transform: uppercase;">
+            Upload Queue (Click to inspect & edit):
+          </div>
+          <div id="file-queue-bar" class="file-queue-bar">
+            <!-- Queue pills inserted dynamically -->
+          </div>
         </div>
 
-        <!-- Custom Target Name Input (Hidden by default) -->
-        <div id="custom-target-group" class="form-group" style="display: none;">
-          <label class="form-label" for="custom-file-name">Custom File Name (must end with .html)</label>
-          <input type="text" id="custom-file-name" class="form-input" placeholder="e.g. final_exam_review.html" />
-        </div>
-
-        <!-- Target Summary Pill -->
-        <div id="target-summary-display" style="font-size: 0.85rem; color: var(--teal-700); background: var(--teal-50); border: 1px solid var(--teal-100); padding: 8px 14px; border-radius: var(--radius-sm); margin-bottom: 20px;">
-          Target storage path: chapter-1.html (in bucket "chapter-files")
-        </div>
-
-        <!-- Feedback Alert Banner -->
+        <!-- Alert Notification Banner -->
         <div id="upload-alert" class="alert-banner" style="display: none; margin-bottom: 20px;"></div>
 
-        <!-- Drag & Drop Area -->
-        <div id="dropzone" class="dropzone">
-          <svg class="dropzone-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-          </svg>
-          <div class="dropzone-title">Drag and drop your HTML file here</div>
-          <div class="dropzone-hint">Supports: .html and .htm files</div>
-          <div style="margin-top: 14px;">
-            <button type="button" id="select-file-btn" class="btn btn-secondary btn-sm">
-              Browse Computer
-            </button>
-            <input type="file" id="file-input" accept=".html,.htm" style="display: none;" />
-          </div>
-        </div>
+        <!-- Two-Column Publisher Grid -->
+        <div class="publisher-grid">
 
-        <!-- Selected File Preview Pill -->
-        <div id="file-preview-pill" class="file-preview-pill">
-          <div class="file-preview-info">
-            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="color: var(--teal-600);">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <div>
-              <div id="file-name-display" class="file-preview-name">chapter.html</div>
-              <div id="file-size-display" class="file-preview-size">0 KB</div>
+          <!-- LEFT COLUMN: Step 1 Upload & Step 2 Metadata Form -->
+          <div>
+            <!-- Dropzone Area -->
+            <div id="dropzone" class="dropzone" style="margin-bottom: 20px;">
+              <svg class="dropzone-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              <div class="dropzone-title">Drag & drop files here</div>
+              <div class="dropzone-hint">Supports: HTML (.html, .htm) and Images (.png, .jpg, .jpeg, .webp)</div>
+              <div style="margin-top: 14px;">
+                <button type="button" id="select-file-btn" class="btn btn-secondary btn-sm">
+                  Browse Files (Multiple Allowed)
+                </button>
+                <input type="file" id="file-input" accept=".html,.htm,.png,.jpg,.jpeg,.webp" multiple
+                  style="display: none;" />
+              </div>
+            </div>
+
+            <!-- Smart Auto-Detection Indicator Banner -->
+            <div id="detection-banner" class="smart-detection-banner" style="display: none;">
+              <div style="display: flex; align-items: center;">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                <span id="detection-message">Smart identification complete. You can review or adjust below.</span>
+              </div>
+              <span id="detection-badge" class="badge"
+                style="background: #dcfce7; color: #166534; font-size: 0.75rem; padding: 2px 8px; border-radius: 999px;">
+                Auto-Detected
+              </span>
+            </div>
+
+            <!-- Metadata Form -->
+            <form id="material-meta-form">
+
+              <!-- Document Title -->
+              <div class="form-group">
+                <label class="form-label" for="meta-title">
+                  Document Title <span style="color: #dc2626;">*</span>
+                </label>
+                <input type="text" id="meta-title" class="form-input"
+                  placeholder="e.g. Geography – Chapter 1: Introduction to Geography of Ethiopia" required />
+              </div>
+
+              <!-- Subject & Stream Row -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                <div class="form-group">
+                  <label class="form-label" for="meta-subject">
+                    Subject <span style="color: #dc2626;">*</span>
+                  </label>
+                  <select id="meta-subject" class="form-input" style="font-weight: 600;">
+                    <option value="Geography">Geography</option>
+                    <option value="Psychology">General Psychology</option>
+                    <option value="Mathematics">Mathematics</option>
+                    <option value="Biology">General Biology</option>
+                    <option value="Physics">General Physics</option>
+                    <option value="Chemistry">General Chemistry</option>
+                    <option value="Logic & Critical Thinking">Logic & Critical Thinking</option>
+                    <option value="Communicative English">Communicative English</option>
+                    <option value="Moral & Civic Education">Moral & Civic Education</option>
+                    <option value="Economics">Introduction to Economics</option>
+                    <option value="History">History of Ethiopia & Horn</option>
+                    <option value="Social Anthropology">Social Anthropology</option>
+                    <option value="Emerging Technologies">Emerging Technologies</option>
+                    <option value="Computer Programming">Computer Programming</option>
+                    <option value="Inclusiveness">Inclusiveness</option>
+                    <option value="Global Trends">Global Trends</option>
+                    <option value="General Academic">Other / General Academic</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="meta-stream">Academic Stream</label>
+                  <select id="meta-stream" class="form-input">
+                    <option value="common">Common Courses (Both)</option>
+                    <option value="natural">Natural Science Stream</option>
+                    <option value="social">Social Science Stream</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Category & Chapter Row -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                <div class="form-group">
+                  <label class="form-label" for="meta-category">Document Category</label>
+                  <select id="meta-category" class="form-input">
+                    <option value="notes">Course Study Notes</option>
+                    <option value="questions">Practice & Review Questions</option>
+                    <option value="exam">Model Exam / Final Exam</option>
+                    <option value="summary">Summary / Key Concepts</option>
+                    <option value="image">Diagram / Educational Chart</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="meta-chapter">Chapter / Unit</label>
+                  <select id="meta-chapter" class="form-input">
+                    <option value="">General / Not Chapter-based</option>
+                    <option value="1">Chapter 1</option>
+                    <option value="2">Chapter 2</option>
+                    <option value="3">Chapter 3</option>
+                    <option value="4">Chapter 4</option>
+                    <option value="5">Chapter 5</option>
+                    <option value="6">Chapter 6</option>
+                    <option value="7">Chapter 7</option>
+                    <option value="8">Chapter 8</option>
+                    <option value="9">Chapter 9</option>
+                    <option value="10">Chapter 10</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Storage Target Path Pill -->
+              <div class="form-group">
+                <label class="form-label" for="meta-storage-path">
+                  Target Storage Filename
+                </label>
+                <div style="display: flex; gap: 8px;">
+                  <input type="text" id="meta-storage-path" class="form-input"
+                    placeholder="e.g. geography_chapter_1.html" required />
+                  <button type="button" id="auto-name-btn" class="btn btn-secondary btn-sm"
+                    title="Re-generate standardized filename">
+                    Auto-Format
+                  </button>
+                </div>
+                <div id="storage-path-hint" style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">
+                  Will be saved in bucket <code>chapter-files</code> with <code>upsert: true</code>.
+                </div>
+              </div>
+
+              <!-- Progress Bar -->
+              <div id="progress-container" class="progress-container">
+                <div class="progress-bar-bg">
+                  <div id="progress-bar" class="progress-bar-fill"></div>
+                </div>
+                <div class="progress-status">
+                  <span id="progress-text">Ready to publish...</span>
+                  <span id="progress-percent">0%</span>
+                </div>
+              </div>
+
+              <!-- Action Publish Buttons -->
+              <div style="display: flex; gap: 12px; margin-top: 12px;">
+                <button type="button" id="publish-current-btn" class="btn btn-primary" disabled style="flex: 1;">
+                  <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  </svg>
+                  Publish Current Document
+                </button>
+                <button type="button" id="publish-all-btn" class="btn btn-secondary" style="display: none;">
+                  Publish All in Queue
+                </button>
+              </div>
+
+            </form>
+          </div>
+
+          <!-- RIGHT COLUMN: Step 3 Live Document Preview Panel -->
+          <div>
+            <div class="preview-panel-card">
+              <div class="preview-panel-header">
+                <div>
+                  <h3 style="font-size: 1rem; font-weight: 700; color: var(--text-main);">Live Document Preview</h3>
+                  <div id="preview-filename-label" style="font-size: 0.8rem; color: var(--text-muted);">
+                    Inspect text, diagrams, and formatting before publishing
+                  </div>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <span id="preview-status-pill" class="preview-badge-status">
+                    Awaiting File
+                  </span>
+                  <button id="preview-reload-btn" class="btn btn-secondary btn-sm" style="display: none;"
+                    title="Reload Preview">
+                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Preview Viewport -->
+              <div class="preview-viewport-container">
+                <!-- Empty Placeholder -->
+                <div id="preview-empty" class="preview-empty-state">
+                  <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="#94a3b8" stroke-width="1.5"
+                    style="margin: 0 auto 12px auto; display: block;">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  <p style="font-weight: 600; color: var(--text-main); margin-bottom: 4px;">No document selected</p>
+                  <p style="font-size: 0.85rem;">Select or drop an HTML or image file to inspect its full content here.
+                  </p>
+                </div>
+
+                <!-- Iframe for HTML documents -->
+                <iframe id="preview-iframe" class="preview-iframe"
+                  sandbox="allow-scripts allow-same-origin allow-popups allow-forms" style="display: none;"
+                  title="Document Preview"></iframe>
+
+                <!-- Image Viewer for Graphic Materials -->
+                <img id="preview-image" class="preview-image-view" style="display: none;" alt="Preview" />
+              </div>
             </div>
           </div>
-          <button type="button" id="remove-file-btn" class="btn btn-secondary btn-sm" title="Remove selected file">
-            &times; Remove
-          </button>
+
         </div>
 
-        <!-- Progress Indicator -->
-        <div id="progress-container" class="progress-container">
-          <div class="progress-bar-bg">
-            <div id="progress-bar" class="progress-bar-fill"></div>
-          </div>
-          <div class="progress-status">
-            <span id="progress-text">Ready to upload...</span>
-            <span id="progress-percent">0%</span>
-          </div>
-        </div>
-
-        <!-- Action Button -->
-        <button id="upload-btn" class="btn btn-primary" disabled style="width: 100%;">
-          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-          </svg>
-          Upload and Publish to Supabase Storage
-        </button>
       </div>
 
-      <!-- Materials List Table Card -->
+      <!-- Published Materials Management Section -->
       <div class="upload-card">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+
+        <div
+          style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
           <div>
-            <h2 class="upload-card-title">Published Materials in Storage</h2>
-            <p class="upload-card-desc">All HTML files currently available in the <code>chapter-files</code> bucket.</p>
+            <h2 class="upload-card-title">Published Materials Library</h2>
+            <p class="upload-card-desc">All learning notes, exam questions, and images published to Supabase.</p>
           </div>
           <button id="refresh-files-btn" class="btn btn-secondary btn-sm">
             <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
-            Refresh List
+            Refresh Library
           </button>
         </div>
 
-        <div id="files-table-loading" style="text-align: center; padding: 24px; color: var(--text-muted);">
+        <!-- Filter & Search Controls Bar -->
+        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+          <input type="search" id="table-search-input" class="form-input"
+            placeholder="Search by title, subject, or filename..." />
+          <select id="table-subject-filter" class="form-input">
+            <option value="all">All Subjects</option>
+            <option value="Geography">Geography</option>
+            <option value="Psychology">Psychology</option>
+            <option value="Mathematics">Mathematics</option>
+            <option value="Biology">Biology</option>
+            <option value="Physics">Physics</option>
+            <option value="Chemistry">Chemistry</option>
+            <option value="Logic & Critical Thinking">Logic</option>
+            <option value="Communicative English">English</option>
+            <option value="Moral & Civic Education">Civics</option>
+            <option value="Economics">Economics</option>
+            <option value="History">History</option>
+            <option value="Social Anthropology">Anthropology</option>
+            <option value="Emerging Technologies">Emerging Tech</option>
+            <option value="Computer Programming">Computing</option>
+          </select>
+          <select id="table-category-filter" class="form-input">
+            <option value="all">All Categories</option>
+            <option value="notes">Course Notes</option>
+            <option value="questions">Questions & Practice</option>
+            <option value="exam">Model Exams</option>
+            <option value="summary">Summaries</option>
+            <option value="image">Images / Charts</option>
+          </select>
+          <select id="table-stream-filter" class="form-input">
+            <option value="all">All Streams</option>
+            <option value="common">Common</option>
+            <option value="natural">Natural Science</option>
+            <option value="social">Social Science</option>
+          </select>
+        </div>
+
+        <!-- Table Loading -->
+        <div id="files-table-loading" style="text-align: center; padding: 32px; color: var(--text-muted);">
           <div class="spinner" style="margin: 0 auto 10px auto;"></div>
-          Loading materials from Supabase Storage...
+          Fetching materials from Supabase...
         </div>
 
-        <div id="files-table-empty" style="display: none; text-align: center; padding: 24px; color: var(--text-muted);">
-          No files found in bucket <code>chapter-files</code>. Upload your first chapter using the form above.
+        <!-- Table Empty State -->
+        <div id="files-table-empty" style="display: none; text-align: center; padding: 32px; color: var(--text-muted);">
+          No published materials found matching the current filters. Upload documents above to populate.
         </div>
 
+        <!-- Materials Table -->
         <div style="overflow-x: auto;">
           <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
             <thead>
-              <tr style="border-bottom: 2px solid var(--border-color); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">
-                <th style="padding: 10px 12px;">Material Title / File</th>
-                <th style="padding: 10px 12px;">Type</th>
-                <th style="padding: 10px 12px;">Size</th>
-                <th style="padding: 10px 12px;">Last Modified</th>
-                <th style="padding: 10px 12px; text-align: right;">Actions</th>
+              <tr
+                style="border-bottom: 2px solid var(--border-color); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">
+                <th style="padding: 12px 14px;">Material Title & Path</th>
+                <th style="padding: 12px 14px;">Subject</th>
+                <th style="padding: 12px 14px;">Category / Chapter</th>
+                <th style="padding: 12px 14px;">Stream</th>
+                <th style="padding: 12px 14px;">Size</th>
+                <th style="padding: 12px 14px; text-align: right;">Actions</th>
               </tr>
             </thead>
             <tbody id="files-table-body">
-              <!-- Rendered dynamically by admin.js -->
+              <!-- Rendered dynamically by js/admin.js -->
             </tbody>
           </table>
         </div>
+
       </div>
 
     </section>
 
   </main>
 
+  <!-- Edit Metadata Modal Dialog -->
+  <div id="edit-modal" class="modal-backdrop" style="display: none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Edit Document Information</h3>
+        <button id="close-modal-btn" class="modal-close-btn">&times;</button>
+      </div>
+
+      <form id="edit-metadata-form">
+        <input type="hidden" id="edit-item-id" />
+        <input type="hidden" id="edit-item-storage-path" />
+
+        <div class="form-group">
+          <label class="form-label" for="edit-title">Document Title</label>
+          <input type="text" id="edit-title" class="form-input" required />
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+          <div class="form-group">
+            <label class="form-label" for="edit-subject">Subject</label>
+            <select id="edit-subject" class="form-input">
+              <option value="Geography">Geography</option>
+              <option value="Psychology">General Psychology</option>
+              <option value="Mathematics">Mathematics</option>
+              <option value="Biology">General Biology</option>
+              <option value="Physics">General Physics</option>
+              <option value="Chemistry">General Chemistry</option>
+              <option value="Logic & Critical Thinking">Logic & Critical Thinking</option>
+              <option value="Communicative English">Communicative English</option>
+              <option value="Moral & Civic Education">Moral & Civic Education</option>
+              <option value="Economics">Introduction to Economics</option>
+              <option value="History">History of Ethiopia & Horn</option>
+              <option value="Social Anthropology">Social Anthropology</option>
+              <option value="Emerging Technologies">Emerging Technologies</option>
+              <option value="Computer Programming">Computer Programming</option>
+              <option value="Inclusiveness">Inclusiveness</option>
+              <option value="Global Trends">Global Trends</option>
+              <option value="General Academic">Other / General Academic</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-stream">Academic Stream</label>
+            <select id="edit-stream" class="form-input">
+              <option value="common">Common Courses (Both)</option>
+              <option value="natural">Natural Science Stream</option>
+              <option value="social">Social Science Stream</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+          <div class="form-group">
+            <label class="form-label" for="edit-category">Category</label>
+            <select id="edit-category" class="form-input">
+              <option value="notes">Course Notes</option>
+              <option value="questions">Practice & Review Questions</option>
+              <option value="exam">Model Exam / Final Exam</option>
+              <option value="summary">Summary</option>
+              <option value="image">Diagram / Image</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-chapter">Chapter / Unit</label>
+            <select id="edit-chapter" class="form-input">
+              <option value="">None / General</option>
+              <option value="1">Chapter 1</option>
+              <option value="2">Chapter 2</option>
+              <option value="3">Chapter 3</option>
+              <option value="4">Chapter 4</option>
+              <option value="5">Chapter 5</option>
+              <option value="6">Chapter 6</option>
+              <option value="7">Chapter 7</option>
+              <option value="8">Chapter 8</option>
+              <option value="9">Chapter 9</option>
+              <option value="10">Chapter 10</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px;">
+          <button type="button" id="cancel-modal-btn" class="btn btn-secondary">Cancel</button>
+          <button type="submit" id="save-modal-btn" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Footer -->
   <footer class="footer">
     <div class="container">
-      <p>&copy; Study Notes - University Educational Platform. All rights reserved.</p>
+      <p>&copy; Study Notes - Freshman Ethiopian University Platform. All rights reserved.</p>
     </div>
   </footer>
 
   <!-- Supabase CDN Library (Official v2) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  
+
   <!-- Project Scripts -->
   <script src="js/supabase.js"></script>
   <script src="js/admin.js"></script>
 
 </body>
+
 </html>

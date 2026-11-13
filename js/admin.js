@@ -1,16 +1,9 @@
 /**
- * Admin Dashboard Logic
- * Supports multi-chapter notes (Chapter 1, 2, 3, 4, 5, 6...) and practice questions,
- * in-place replacement with upsert: true, credentials setup, and storage file management.
+ * Smart Admin Dashboard & Document Publisher
+ * Freshman Ethiopia Educational Notes Platform
  */
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Elements - Credentials Setup Card
-  const configBox = document.getElementById("config-box");
-  const configForm = document.getElementById("admin-config-form");
-  const configUrlInput = document.getElementById("admin-supabase-url");
-  const configKeyInput = document.getElementById("admin-supabase-key");
-
   // Elements - Containers
   const authSection = document.getElementById("auth-section");
   const dashboardSection = document.getElementById("dashboard-section");
@@ -24,102 +17,101 @@ document.addEventListener("DOMContentLoaded", () => {
   const logoutBtn = document.getElementById("logout-btn");
   const adminEmailDisplay = document.getElementById("admin-email-display");
 
-  // Elements - Upload Target Selection
-  const targetSelect = document.getElementById("target-file-select");
-  const customTargetGroup = document.getElementById("custom-target-group");
-  const customFileNameInput = document.getElementById("custom-file-name");
-
-  // Elements - File Drag & Drop
+  // Elements - Upload & Queue
   const dropzone = document.getElementById("dropzone");
   const fileInput = document.getElementById("file-input");
   const selectFileBtn = document.getElementById("select-file-btn");
-  const filePill = document.getElementById("file-preview-pill");
-  const fileNameDisplay = document.getElementById("file-name-display");
-  const fileSizeDisplay = document.getElementById("file-size-display");
-  const targetSummaryDisplay = document.getElementById("target-summary-display");
-  const removeFileBtn = document.getElementById("remove-file-btn");
-  const uploadBtn = document.getElementById("upload-btn");
+  const queueContainer = document.getElementById("queue-container");
+  const fileQueueBar = document.getElementById("file-queue-bar");
+  const uploadAlert = document.getElementById("upload-alert");
 
-  // Elements - Progress & Status
+  // Elements - Smart Metadata Form
+  const detectionBanner = document.getElementById("detection-banner");
+  const detectionMessage = document.getElementById("detection-message");
+  const metaTitle = document.getElementById("meta-title");
+  const metaSubject = document.getElementById("meta-subject");
+  const metaStream = document.getElementById("meta-stream");
+  const metaCategory = document.getElementById("meta-category");
+  const metaChapter = document.getElementById("meta-chapter");
+  const metaStoragePath = document.getElementById("meta-storage-path");
+  const autoNameBtn = document.getElementById("auto-name-btn");
+  const publishCurrentBtn = document.getElementById("publish-current-btn");
+  const publishAllBtn = document.getElementById("publish-all-btn");
+
+  // Elements - Progress Bar
   const progressContainer = document.getElementById("progress-container");
   const progressBar = document.getElementById("progress-bar");
   const progressPercent = document.getElementById("progress-percent");
   const progressText = document.getElementById("progress-text");
-  const uploadAlert = document.getElementById("upload-alert");
 
-  // Elements - Materials Management Table
+  // Elements - Live Preview Panel
+  const previewFilenameLabel = document.getElementById("preview-filename-label");
+  const previewStatusPill = document.getElementById("preview-status-pill");
+  const previewEmpty = document.getElementById("preview-empty");
+  const previewIframe = document.getElementById("preview-iframe");
+  const previewImage = document.getElementById("preview-image");
+  const previewReloadBtn = document.getElementById("preview-reload-btn");
+
+  // Elements - Materials Table & Filters
+  const tableSearchInput = document.getElementById("table-search-input");
+  const tableSubjectFilter = document.getElementById("table-subject-filter");
+  const tableCategoryFilter = document.getElementById("table-category-filter");
+  const tableStreamFilter = document.getElementById("table-stream-filter");
   const filesTableBody = document.getElementById("files-table-body");
   const filesTableLoading = document.getElementById("files-table-loading");
   const filesTableEmpty = document.getElementById("files-table-empty");
   const refreshFilesBtn = document.getElementById("refresh-files-btn");
 
-  let selectedFile = null;
+  // Elements - Edit Metadata Modal
+  const editModal = document.getElementById("edit-modal");
+  const closeModalBtn = document.getElementById("close-modal-btn");
+  const cancelModalBtn = document.getElementById("cancel-modal-btn");
+  const editMetadataForm = document.getElementById("edit-metadata-form");
+  const editItemId = document.getElementById("edit-item-id");
+  const editItemStoragePath = document.getElementById("edit-item-storage-path");
+  const editTitle = document.getElementById("edit-title");
+  const editSubject = document.getElementById("edit-subject");
+  const editStream = document.getElementById("edit-stream");
+  const editCategory = document.getElementById("edit-category");
+  const editChapter = document.getElementById("edit-chapter");
+
+  // State
+  let uploadQueue = []; // Array of { file, textContent, previewUrl, meta, isRead }
+  let activeIndex = -1;
+  let allPublishedMaterials = [];
   let currentUser = null;
 
   init();
 
   function init() {
-    setupCredentialsForm();
     checkAuthAndSession();
-    setupUploadHandlers();
+    setupEventListeners();
   }
 
-  function setupCredentialsForm() {
-    const creds = window.AppConfig.getActiveCredentials();
-    if (configUrlInput && creds.url) configUrlInput.value = creds.url;
-    if (configKeyInput && creds.key) configKeyInput.value = creds.key;
-
-    if (!window.AppConfig.isConfigured()) {
-      if (configBox) configBox.style.display = "block";
-      if (loginBtn) loginBtn.disabled = true;
-    } else {
-      if (configBox) configBox.style.display = "none";
-      if (loginBtn) loginBtn.disabled = false;
-    }
-
-    if (configForm) {
-      configForm.addEventListener("submit", (e) => {
-        e.preventDefault();
-        const url = configUrlInput.value.trim();
-        const key = configKeyInput.value.trim();
-
-        if (!url || !key) {
-          alert("Please provide both Supabase URL and Anon Key.");
-          return;
-        }
-
-        window.AppConfig.saveCredentials(url, key);
-        if (configBox) configBox.style.display = "none";
-        if (loginBtn) loginBtn.disabled = false;
-        checkAuthAndSession();
-      });
-    }
-  }
-
+  // ============================================================================
+  // 1. AUTHENTICATION & SESSION
+  // ============================================================================
   async function checkAuthAndSession() {
     if (!window.AppConfig.isConfigured()) return;
-
     const supabase = window.AppConfig.supabaseClient || window.AppConfig.initClient();
     if (!supabase) return;
 
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
       if (error) {
-        console.warn("Session check error:", error.message);
         handleSignedOut();
         return;
       }
 
       if (session && session.user) {
-        await handleAuthenticatedUser(session.user);
+        handleAuthenticatedUser(session.user);
       } else {
         handleSignedOut();
       }
 
-      // Listen to auth changes
-      supabase.auth.onAuthStateChange(async (event, newSession) => {
+      supabase.auth.onAuthStateChange((event, newSession) => {
         if (newSession && newSession.user) {
-          await handleAuthenticatedUser(newSession.user);
+          handleAuthenticatedUser(newSession.user);
         } else {
           handleSignedOut();
         }
@@ -130,15 +122,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  async function handleAuthenticatedUser(user) {
+  function handleAuthenticatedUser(user) {
     currentUser = user;
     if (adminEmailDisplay) adminEmailDisplay.textContent = user.email;
-
-    // Toggle UI views
     if (authSection) authSection.style.display = "none";
     if (dashboardSection) dashboardSection.style.display = "block";
-
-    // Load list of all uploaded materials in the bucket
     loadPublishedMaterials();
   }
 
@@ -146,10 +134,9 @@ document.addEventListener("DOMContentLoaded", () => {
     currentUser = null;
     if (authSection) authSection.style.display = "block";
     if (dashboardSection) dashboardSection.style.display = "none";
-    resetUploadState();
+    clearQueue();
   }
 
-  // Login handler
   if (loginForm) {
     loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -172,15 +159,11 @@ document.addEventListener("DOMContentLoaded", () => {
       const supabase = window.AppConfig.supabaseClient || window.AppConfig.initClient();
 
       try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
           showAuthError(error.message);
         } else if (data.user) {
-          await handleAuthenticatedUser(data.user);
+          handleAuthenticatedUser(data.user);
         }
       } catch (err) {
         showAuthError(err.message || "An unexpected error occurred during sign in.");
@@ -191,65 +174,18 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Logout handler
   if (logoutBtn) {
     logoutBtn.addEventListener("click", async () => {
       const supabase = window.AppConfig.supabaseClient;
-      if (supabase) {
-        await supabase.auth.signOut();
-      }
+      if (supabase) await supabase.auth.signOut();
       handleSignedOut();
     });
   }
 
-  // Target File selection (Chapter 1, 2, 3, 4, 5, 6, questions, or custom)
-  if (targetSelect) {
-    targetSelect.addEventListener("change", () => {
-      if (targetSelect.value === "custom") {
-        customTargetGroup.style.display = "block";
-      } else {
-        customTargetGroup.style.display = "none";
-      }
-      updateTargetSummary();
-    });
-  }
-
-  if (customFileNameInput) {
-    customFileNameInput.addEventListener("input", updateTargetSummary);
-  }
-
-  function getTargetFilePath() {
-    if (!targetSelect) return "chapter-1.html";
-
-    const val = targetSelect.value;
-    if (val === "original") {
-      if (selectedFile) {
-        // Sanitize filename
-        return selectedFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      }
-      return "uploaded_notes.html";
-    }
-
-    if (val === "custom") {
-      const customName = customFileNameInput.value.trim();
-      if (customName) {
-        const clean = customName.replace(/[^a-zA-Z0-9._-]/g, "_");
-        return clean.endsWith(".html") || clean.endsWith(".htm") ? clean : `${clean}.html`;
-      }
-      return "custom_notes.html";
-    }
-
-    return val;
-  }
-
-  function updateTargetSummary() {
-    if (!targetSummaryDisplay) return;
-    const path = getTargetFilePath();
-    targetSummaryDisplay.textContent = `Target storage path: ${path} (in bucket "${window.AppConfig.BUCKET_NAME}")`;
-  }
-
-  // File Drag & Drop
-  function setupUploadHandlers() {
+  // ============================================================================
+  // 2. MULTI-FILE SELECTION & QUEUE
+  // ============================================================================
+  function setupEventListeners() {
     if (selectFileBtn && fileInput) {
       selectFileBtn.addEventListener("click", () => fileInput.click());
     }
@@ -257,7 +193,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (fileInput) {
       fileInput.addEventListener("change", (e) => {
         if (e.target.files && e.target.files.length > 0) {
-          processSelectedFile(e.target.files[0]);
+          addFilesToQueue(Array.from(e.target.files));
+          fileInput.value = "";
         }
       });
     }
@@ -281,132 +218,433 @@ document.addEventListener("DOMContentLoaded", () => {
 
       dropzone.addEventListener("drop", (e) => {
         if (e.dataTransfer && e.dataTransfer.files.length > 0) {
-          processSelectedFile(e.dataTransfer.files[0]);
+          addFilesToQueue(Array.from(e.dataTransfer.files));
         }
       });
     }
 
-    if (removeFileBtn) {
-      removeFileBtn.addEventListener("click", resetUploadState);
+    // Auto format filename button
+    if (autoNameBtn) {
+      autoNameBtn.addEventListener("click", formatSuggestedFilename);
     }
 
-    if (uploadBtn) {
-      uploadBtn.addEventListener("click", handleUpload);
+    // Dynamic field change triggers
+    [metaSubject, metaChapter, metaCategory].forEach((el) => {
+      if (el) el.addEventListener("change", () => {
+        syncFormToCurrentItem();
+        formatSuggestedFilename();
+      });
+    });
+
+    if (metaTitle) {
+      metaTitle.addEventListener("input", syncFormToCurrentItem);
     }
 
-    if (refreshFilesBtn) {
-      refreshFilesBtn.addEventListener("click", loadPublishedMaterials);
+    if (metaStream) {
+      metaStream.addEventListener("change", syncFormToCurrentItem);
     }
+
+    if (metaStoragePath) {
+      metaStoragePath.addEventListener("input", syncFormToCurrentItem);
+    }
+
+    // Publish buttons
+    if (publishCurrentBtn) {
+      publishCurrentBtn.addEventListener("click", () => publishCurrentItem());
+    }
+
+    if (publishAllBtn) {
+      publishAllBtn.addEventListener("click", () => publishAllInQueue());
+    }
+
+    // Table filters & search
+    if (tableSearchInput) tableSearchInput.addEventListener("input", filterAndRenderTable);
+    if (tableSubjectFilter) tableSubjectFilter.addEventListener("change", filterAndRenderTable);
+    if (tableCategoryFilter) tableCategoryFilter.addEventListener("change", filterAndRenderTable);
+    if (tableStreamFilter) tableStreamFilter.addEventListener("change", filterAndRenderTable);
+    if (refreshFilesBtn) refreshFilesBtn.addEventListener("click", loadPublishedMaterials);
+
+    // Edit Modal events
+    if (closeModalBtn) closeModalBtn.addEventListener("click", closeEditModal);
+    if (cancelModalBtn) cancelModalBtn.addEventListener("click", closeEditModal);
+    if (editMetadataForm) editMetadataForm.addEventListener("submit", handleSaveEditedMetadata);
   }
 
-  function processSelectedFile(file) {
+  /**
+   * Add dropped/selected files to upload queue and trigger smart reading
+   */
+  async function addFilesToQueue(files) {
     clearUploadAlert();
-    const nameLower = file.name.toLowerCase();
-    if (!nameLower.endsWith(".html") && !nameLower.endsWith(".htm")) {
-      showUploadAlert("error", "Invalid file type. Please select an .html or .htm file.");
+    const validExtensions = [".html", ".htm", ".png", ".jpg", ".jpeg", ".webp"];
+
+    const acceptedFiles = files.filter((file) => {
+      const lower = file.name.toLowerCase();
+      return validExtensions.some((ext) => lower.endsWith(ext));
+    });
+
+    if (acceptedFiles.length === 0) {
+      showUploadAlert("error", "No valid files selected. Please upload HTML or Image files (.html, .htm, .png, .jpg, .webp).");
       return;
     }
 
-    selectedFile = file;
-    fileNameDisplay.textContent = file.name;
-    fileSizeDisplay.textContent = formatBytes(file.size);
+    for (const file of acceptedFiles) {
+      const item = {
+        file,
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        isImage: file.type.startsWith("image/") || /\.(png|jpe?g|webp)$/i.test(file.name),
+        textContent: "",
+        previewUrl: "",
+        meta: null,
+        status: "pending"
+      };
 
-    filePill.classList.add("active");
-    uploadBtn.disabled = false;
-
-    // Auto-detect target based on filename
-    autoDetectTargetSelection(file.name);
-    updateTargetSummary();
-  }
-
-  function autoDetectTargetSelection(filename) {
-    const lower = filename.toLowerCase();
-    const chMatch = lower.match(/chapter[_-]?(\d+)/i) || lower.match(/ch[_-]?(\d+)/i);
-
-    if (chMatch) {
-      const num = chMatch[1];
-      const matchingOption = targetSelect.querySelector(`option[value="chapter-${num}.html"]`);
-      if (matchingOption) {
-        targetSelect.value = `chapter-${num}.html`;
-        customTargetGroup.style.display = "none";
-        return;
-      }
+      await processQueueItem(item);
+      uploadQueue.push(item);
     }
 
-    if (lower.includes("question") || lower.includes("exam") || lower.includes("quiz")) {
-      targetSelect.value = "questions.html";
-      customTargetGroup.style.display = "none";
-      return;
-    }
-  }
+    renderQueuePills();
 
-  function resetUploadState() {
-    selectedFile = null;
-    if (fileInput) fileInput.value = "";
-    if (filePill) filePill.classList.remove("active");
-    if (uploadBtn) uploadBtn.disabled = true;
-    if (progressContainer) progressContainer.classList.remove("active");
-    updateTargetSummary();
-  }
-
-  // Upload & Upsert Handler
-  async function handleUpload() {
-    if (!selectedFile) return;
-
-    clearUploadAlert();
-    uploadBtn.disabled = true;
-    progressContainer.classList.add("active");
-    setProgress(20, "Preparing file...");
-
-    const targetPath = getTargetFilePath();
-    const supabase = window.AppConfig.supabaseClient;
-
-    try {
-      setProgress(50, `Uploading and replacing "${targetPath}"...`);
-
-      /**
-       * Upsert to Supabase Storage:
-       * - Replaces previous version in place
-       * - Content-Type text/html ensures correct browser execution
-       * - cacheControl 0 ensures immediate freshness
-       */
-      const { data, error } = await supabase.storage
-        .from(window.AppConfig.BUCKET_NAME)
-        .upload(targetPath, selectedFile, {
-          upsert: true,
-          contentType: "text/html",
-          cacheControl: "0",
-        });
-
-      if (error) throw error;
-
-      setProgress(90, "Verifying upload...");
-
-      // Reload files table
-      await loadPublishedMaterials();
-
-      setProgress(100, "Published successfully!");
-
-      showUploadAlert(
-        "success",
-        `Success! "${selectedFile.name}" has been published to "${targetPath}". Students can now read this latest version instantly.`
-      );
-
-      resetUploadState();
-    } catch (err) {
-      console.error("Upload error:", err);
-      showUploadAlert(
-        "error",
-        `Upload failed: ${err.message || "Could not upload file to Supabase Storage."}`
-      );
-      uploadBtn.disabled = false;
-      progressContainer.classList.remove("active");
+    // Select the newly added file (or first in queue)
+    if (activeIndex === -1 || activeIndex >= uploadQueue.length) {
+      selectQueueItem(0);
+    } else {
+      selectQueueItem(uploadQueue.length - 1);
     }
   }
 
   /**
-   * Load and display all published materials in the bucket
+   * Read file content & run smart identification
    */
+  async function processQueueItem(item) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+
+      if (item.isImage) {
+        reader.onload = (e) => {
+          item.previewUrl = e.target.result;
+          item.meta = window.AppConfig.smartIdentifyDocument({
+            filename: item.name,
+            mimeType: item.type || "image/jpeg"
+          });
+          resolve(item);
+        };
+        reader.readAsDataURL(item.file);
+      } else {
+        reader.onload = (e) => {
+          item.textContent = e.target.result;
+          item.meta = window.AppConfig.smartIdentifyDocument({
+            filename: item.name,
+            textContent: item.textContent,
+            mimeType: "text/html"
+          });
+          resolve(item);
+        };
+        reader.readAsText(item.file);
+      }
+    });
+  }
+
+  /**
+   * Render the Queue Pills
+   */
+  function renderQueuePills() {
+    if (!fileQueueBar || !queueContainer) return;
+
+    if (uploadQueue.length === 0) {
+      queueContainer.style.display = "none";
+      if (publishAllBtn) publishAllBtn.style.display = "none";
+      return;
+    }
+
+    queueContainer.style.display = "block";
+    fileQueueBar.innerHTML = "";
+
+    uploadQueue.forEach((item, index) => {
+      const pill = document.createElement("div");
+      pill.className = `queue-pill ${index === activeIndex ? "active" : ""}`;
+
+      const icon = item.isImage ? "🖼️" : "📄";
+      const subjectTag = item.meta ? `[${item.meta.subject}]` : "";
+
+      pill.innerHTML = `
+        <span>${icon} ${escapeHtml(item.name)} <small style="opacity: 0.8;">${subjectTag}</small></span>
+        <span class="pill-remove" title="Remove from queue">&times;</span>
+      `;
+
+      pill.addEventListener("click", (e) => {
+        if (e.target.classList.contains("pill-remove")) {
+          e.stopPropagation();
+          removeFromQueue(index);
+        } else {
+          selectQueueItem(index);
+        }
+      });
+
+      fileQueueBar.appendChild(pill);
+    });
+
+    if (publishAllBtn) {
+      publishAllBtn.style.display = uploadQueue.length > 1 ? "inline-flex" : "none";
+      publishAllBtn.textContent = `Publish All (${uploadQueue.length}) in Queue`;
+    }
+  }
+
+  function removeFromQueue(index) {
+    uploadQueue.splice(index, 1);
+    if (uploadQueue.length === 0) {
+      clearQueue();
+    } else {
+      const nextIndex = Math.min(index, uploadQueue.length - 1);
+      renderQueuePills();
+      selectQueueItem(nextIndex);
+    }
+  }
+
+  function clearQueue() {
+    uploadQueue = [];
+    activeIndex = -1;
+    renderQueuePills();
+    resetForm();
+    resetPreview();
+  }
+
+  /**
+   * Select a specific item in the queue to show in Form & Live Preview
+   */
+  function selectQueueItem(index) {
+    if (!uploadQueue[index]) return;
+    activeIndex = index;
+    renderQueuePills();
+
+    const item = uploadQueue[index];
+    populateFormWithMetadata(item);
+    renderLivePreview(item);
+
+    if (publishCurrentBtn) publishCurrentBtn.disabled = false;
+  }
+
+  // ============================================================================
+  // 3. SMART METADATA FORM POPULATION
+  // ============================================================================
+  function populateFormWithMetadata(item) {
+    const meta = item.meta;
+    if (!meta) return;
+
+    if (metaTitle) metaTitle.value = meta.title || "";
+    if (metaSubject) metaSubject.value = meta.subject || "General Academic";
+    if (metaStream) metaStream.value = meta.stream || "common";
+    if (metaCategory) metaCategory.value = meta.category || "notes";
+    if (metaChapter) metaChapter.value = meta.chapter ? String(meta.chapter) : "";
+
+    // Target storage filename
+    if (!meta.storagePath) {
+      meta.storagePath = generateCleanStoragePath(meta, item.name);
+    }
+    if (metaStoragePath) metaStoragePath.value = meta.storagePath;
+
+    // Detection Banner
+    if (detectionBanner && detectionMessage) {
+      detectionBanner.style.display = "flex";
+      detectionMessage.textContent = meta.detectionNotes && meta.detectionNotes.length > 0
+        ? `Identified as ${meta.subject} (${meta.chapterLabel || "General"}). ${meta.detectionNotes.join(" • ")}`
+        : `Smart identification complete for ${item.name}.`;
+    }
+  }
+
+  function syncFormToCurrentItem() {
+    if (activeIndex === -1 || !uploadQueue[activeIndex]) return;
+    const item = uploadQueue[activeIndex];
+    if (!item.meta) item.meta = {};
+
+    item.meta.title = metaTitle.value.trim();
+    item.meta.subject = metaSubject.value;
+    item.meta.stream = metaStream.value;
+    item.meta.category = metaCategory.value;
+    item.meta.chapter = metaChapter.value ? parseInt(metaChapter.value, 10) : null;
+    item.meta.chapterLabel = metaChapter.value ? `Chapter ${metaChapter.value}` : "";
+    item.meta.storagePath = metaStoragePath.value.trim();
+  }
+
+  function formatSuggestedFilename() {
+    if (activeIndex === -1 || !uploadQueue[activeIndex]) return;
+    const item = uploadQueue[activeIndex];
+    syncFormToCurrentItem();
+    const suggested = generateCleanStoragePath(item.meta, item.name);
+    item.meta.storagePath = suggested;
+    if (metaStoragePath) metaStoragePath.value = suggested;
+  }
+
+  function generateCleanStoragePath(meta, originalName) {
+    const ext = (originalName.split(".").pop() || "html").toLowerCase();
+    const subjectSlug = (meta.subject || "general").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+
+    let base = "";
+    if (meta.chapter) {
+      base = `${subjectSlug}_chapter_${meta.chapter}`;
+    } else if (meta.category === "exam") {
+      base = `${subjectSlug}_model_exam`;
+    } else if (meta.category === "questions") {
+      base = `${subjectSlug}_questions`;
+    } else {
+      base = `${subjectSlug}_notes`;
+    }
+
+    // Preserve image extension
+    return `${base}.${ext}`;
+  }
+
+  // ============================================================================
+  // 4. LIVE DOCUMENT PREVIEW
+  // ============================================================================
+  function renderLivePreview(item) {
+    if (previewEmpty) previewEmpty.style.display = "none";
+    if (previewFilenameLabel) previewFilenameLabel.textContent = `${item.name} (${formatBytes(item.size)})`;
+    if (previewStatusPill) {
+      previewStatusPill.textContent = "Ready to Publish";
+      previewStatusPill.style.background = "#ecfdf5";
+      previewStatusPill.style.color = "#065f46";
+    }
+
+    if (item.isImage) {
+      if (previewIframe) previewIframe.style.display = "none";
+      if (previewImage) {
+        previewImage.style.display = "block";
+        previewImage.src = item.previewUrl;
+      }
+    } else {
+      if (previewImage) previewImage.style.display = "none";
+      if (previewIframe) {
+        previewIframe.style.display = "block";
+        // Render raw HTML using srcdoc so interactive popups, styles, and scripts run!
+        previewIframe.srcdoc = item.textContent || "<p style='padding:20px; font-family:sans-serif;'>Empty document.</p>";
+      }
+    }
+  }
+
+  function resetPreview() {
+    if (previewEmpty) previewEmpty.style.display = "block";
+    if (previewIframe) {
+      previewIframe.style.display = "none";
+      previewIframe.removeAttribute("srcdoc");
+      previewIframe.src = "about:blank";
+    }
+    if (previewImage) {
+      previewImage.style.display = "none";
+      previewImage.src = "";
+    }
+    if (previewFilenameLabel) {
+      previewFilenameLabel.textContent = "Inspect text, diagrams, and formatting before publishing";
+    }
+    if (previewStatusPill) {
+      previewStatusPill.textContent = "Awaiting File";
+      previewStatusPill.style.background = "var(--bg-card-subtle)";
+      previewStatusPill.style.color = "var(--text-muted)";
+    }
+  }
+
+  function resetForm() {
+    if (metaTitle) metaTitle.value = "";
+    if (metaSubject) metaSubject.value = "Geography";
+    if (metaStream) metaStream.value = "common";
+    if (metaCategory) metaCategory.value = "notes";
+    if (metaChapter) metaChapter.value = "1";
+    if (metaStoragePath) metaStoragePath.value = "";
+    if (detectionBanner) detectionBanner.style.display = "none";
+    if (publishCurrentBtn) publishCurrentBtn.disabled = true;
+    if (progressContainer) progressContainer.classList.remove("active");
+  }
+
+  // ============================================================================
+  // 5. PUBLISHING ENGINE
+  // ============================================================================
+  async function publishCurrentItem() {
+    if (activeIndex === -1 || !uploadQueue[activeIndex]) return;
+    syncFormToCurrentItem();
+
+    const item = uploadQueue[activeIndex];
+    const targetPath = item.meta.storagePath || item.name;
+
+    if (!item.meta.title) {
+      showUploadAlert("error", "Please enter a document title.");
+      return;
+    }
+
+    clearUploadAlert();
+    publishCurrentBtn.disabled = true;
+    if (progressContainer) progressContainer.classList.add("active");
+    setProgress(25, "Uploading file to Supabase Storage...");
+
+    try {
+      // 1. Upload to Storage
+      await window.AppConfig.uploadMaterialFile(item.file, targetPath, item.type);
+      setProgress(70, "Saving document metadata to database...");
+
+      // 2. Save metadata record
+      const materialRecord = {
+        title: item.meta.title,
+        storage_path: targetPath,
+        file_name: item.name,
+        file_type: item.isImage ? "image" : "html",
+        mime_type: item.type || (item.isImage ? "image/jpeg" : "text/html"),
+        file_size: item.size,
+        subject: item.meta.subject,
+        subject_code: getSubjectCode(item.meta.subject),
+        category: item.meta.category,
+        chapter: item.meta.chapter,
+        chapter_label: item.meta.chapterLabel,
+        stream: item.meta.stream,
+        description: "",
+      };
+
+      await window.AppConfig.saveMaterialMetadata(materialRecord);
+      setProgress(100, "Published successfully!");
+
+      showUploadAlert(
+        "success",
+        `Success! "${item.meta.title}" has been published to "${targetPath}". Students can now read and view it immediately.`
+      );
+
+      // Remove from queue
+      removeFromQueue(activeIndex);
+
+      // Refresh table
+      loadPublishedMaterials();
+    } catch (err) {
+      console.error("Publishing error:", err);
+      showUploadAlert("error", `Publish failed: ${err.message || "Could not publish material."}`);
+      publishCurrentBtn.disabled = false;
+      if (progressContainer) progressContainer.classList.remove("active");
+    }
+  }
+
+  async function publishAllInQueue() {
+    if (uploadQueue.length === 0) return;
+
+    if (!confirm(`Are you sure you want to publish all ${uploadQueue.length} materials in the queue?`)) {
+      return;
+    }
+
+    if (publishAllBtn) publishAllBtn.disabled = true;
+    if (publishCurrentBtn) publishCurrentBtn.disabled = true;
+
+    let successCount = 0;
+    const total = uploadQueue.length;
+
+    for (let i = 0; i < total; i++) {
+      selectQueueItem(0); // Always publish head of queue
+      await publishCurrentItem();
+      successCount++;
+    }
+
+    showUploadAlert("success", `Batch upload completed! Successfully published ${successCount} documents.`);
+    if (publishAllBtn) publishAllBtn.disabled = false;
+  }
+
+  // ============================================================================
+  // 6. PUBLISHED MATERIALS LIBRARY TABLE
+  // ============================================================================
   async function loadPublishedMaterials() {
     if (!filesTableBody) return;
 
@@ -414,96 +652,133 @@ document.addEventListener("DOMContentLoaded", () => {
     if (filesTableEmpty) filesTableEmpty.style.display = "none";
     filesTableBody.innerHTML = "";
 
-    const { data, error } = await window.AppConfig.listAllNotesFiles();
+    const { data, error } = await window.AppConfig.fetchPublishedMaterials();
 
     if (filesTableLoading) filesTableLoading.style.display = "none";
 
     if (error) {
-      console.error("Failed to load materials table:", error);
+      console.error("Error loading library table:", error);
+      if (filesTableEmpty) {
+        filesTableEmpty.style.display = "block";
+        filesTableEmpty.textContent = `Error loading materials: ${error}`;
+      }
       return;
     }
 
-    const files = data || [];
+    allPublishedMaterials = data || [];
+    filterAndRenderTable();
+  }
 
-    if (files.length === 0) {
+  function filterAndRenderTable() {
+    if (!filesTableBody) return;
+    filesTableBody.innerHTML = "";
+
+    const query = tableSearchInput ? tableSearchInput.value.toLowerCase().trim() : "";
+    const subjectFilter = tableSubjectFilter ? tableSubjectFilter.value : "all";
+    const categoryFilter = tableCategoryFilter ? tableCategoryFilter.value : "all";
+    const streamFilter = tableStreamFilter ? tableStreamFilter.value : "all";
+
+    const filtered = allPublishedMaterials.filter((item) => {
+      // Search
+      if (query) {
+        const titleMatch = (item.title || "").toLowerCase().includes(query);
+        const fileMatch = (item.storage_path || item.file_name || "").toLowerCase().includes(query);
+        const subjMatch = (item.subject || "").toLowerCase().includes(query);
+        if (!titleMatch && !fileMatch && !subjMatch) return false;
+      }
+
+      // Subject
+      if (subjectFilter !== "all" && item.subject !== subjectFilter) return false;
+
+      // Category
+      if (categoryFilter !== "all" && item.category !== categoryFilter) return false;
+
+      // Stream
+      if (streamFilter !== "all" && item.stream !== streamFilter && item.stream !== "common") return false;
+
+      return true;
+    });
+
+    if (filtered.length === 0) {
       if (filesTableEmpty) filesTableEmpty.style.display = "block";
       return;
     }
 
-    files.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }));
+    if (filesTableEmpty) filesTableEmpty.style.display = "none";
 
-    files.forEach((file) => {
+    filtered.forEach((item) => {
       const tr = document.createElement("tr");
       tr.style.borderBottom = "1px solid var(--border-color)";
 
-      const isQuestion = window.AppConfig.getMaterialCategory(file.name) === "questions";
-      const title = window.AppConfig.formatMaterialTitle(file.name);
-      const sizeStr = file.metadata ? formatBytes(file.metadata.size) : "-";
-      const updatedStr = file.updated_at ? formatDate(file.updated_at) : "Recently";
-      const publicUrl = window.AppConfig.getNotesPublicUrl(file.name);
-
-      const studentReaderUrl = `index.html?read=${encodeURIComponent(file.name)}`;
+      const subjectClass = getSubjectClass(item.subject);
+      const categoryLabel = getCategoryLabel(item.category);
+      const chapterLabel = item.chapter ? `Ch. ${item.chapter}` : (item.chapter_label || "General");
+      const sizeStr = item.file_size ? formatBytes(item.file_size) : "-";
+      const isImage = item.file_type === "image";
+      const readerUrl = `index.html?read=${encodeURIComponent(item.storage_path)}`;
 
       tr.innerHTML = `
-        <td style="padding: 14px 12px; font-weight: 600;">
-          <div>${escapeHtml(title)}</div>
-          <div style="font-family: monospace; font-size: 0.8rem; color: var(--text-muted);">${escapeHtml(file.name)}</div>
+        <td style="padding: 14px 14px;">
+          <div style="font-weight: 700; color: var(--text-main);">${escapeHtml(item.title || item.file_name)}</div>
+          <div style="font-family: monospace; font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px; margin-top: 2px;">
+            <span>${isImage ? "🖼️" : "📄"}</span>
+            <span>${escapeHtml(item.storage_path)}</span>
+          </div>
         </td>
-        <td style="padding: 14px 12px;">
-          <span class="nav-badge" style="${isQuestion ? 'background: #fef3c7; color: #92400e; border-color: #fde68a;' : ''}">
-            ${isQuestion ? 'Questions' : 'Chapter'}
+        <td style="padding: 14px 14px;">
+          <span class="subject-pill ${subjectClass}">
+            ${escapeHtml(item.subject)}
           </span>
         </td>
-        <td style="padding: 14px 12px; font-size: 0.85rem; color: var(--text-muted);">${sizeStr}</td>
-        <td style="padding: 14px 12px; font-size: 0.85rem; color: var(--text-muted);">${updatedStr}</td>
-        <td style="padding: 14px 12px; text-align: right;">
+        <td style="padding: 14px 14px;">
+          <div><strong style="font-size: 0.85rem;">${escapeHtml(chapterLabel)}</strong></div>
+          <div style="font-size: 0.8rem; color: var(--text-muted);">${escapeHtml(categoryLabel)}</div>
+        </td>
+        <td style="padding: 14px 14px;">
+          <span class="stream-pill ${item.stream || 'common'}">
+            ${formatStreamLabel(item.stream)}
+          </span>
+        </td>
+        <td style="padding: 14px 14px; font-size: 0.85rem; color: var(--text-muted);">${sizeStr}</td>
+        <td style="padding: 14px 14px; text-align: right;">
           <div style="display: flex; gap: 6px; justify-content: flex-end;">
-            <a href="${studentReaderUrl}" target="_blank" class="btn btn-secondary btn-sm" title="Preview rendered notes">
+            <a href="${readerUrl}" target="_blank" class="btn btn-secondary btn-sm" title="Open student reader view">
               Preview &nearr;
             </a>
-            <button class="btn btn-secondary btn-sm select-replace-btn" data-file="${escapeHtml(file.name)}" title="Select this file to replace">
+            <button class="btn btn-secondary btn-sm edit-details-btn" title="Edit document information">
+              Edit
+            </button>
+            <button class="btn btn-secondary btn-sm replace-btn" title="Replace file in storage">
               Replace
             </button>
-            <button class="btn btn-secondary btn-sm delete-file-btn" data-file="${escapeHtml(file.name)}" style="color: #dc2626;" title="Delete file">
+            <button class="btn btn-secondary btn-sm delete-btn" style="color: #dc2626;" title="Delete material">
               Delete
             </button>
           </div>
         </td>
       `;
 
-      // Event listener for quick replace
-      const replaceBtn = tr.querySelector(".select-replace-btn");
-      replaceBtn.addEventListener("click", () => {
-        // Set target select to this file or custom
-        const existingOption = targetSelect.querySelector(`option[value="${file.name}"]`);
-        if (existingOption) {
-          targetSelect.value = file.name;
-          customTargetGroup.style.display = "none";
-        } else {
-          targetSelect.value = "custom";
-          customTargetGroup.style.display = "block";
-          customFileNameInput.value = file.name;
-        }
-        updateTargetSummary();
-        // Scroll to dropzone
+      // Edit Details Event
+      tr.querySelector(".edit-details-btn").addEventListener("click", () => openEditModal(item));
+
+      // Replace Event
+      tr.querySelector(".replace-btn").addEventListener("click", () => {
+        if (metaStoragePath) metaStoragePath.value = item.storage_path;
+        if (metaSubject) metaSubject.value = item.subject;
+        if (metaTitle) metaTitle.value = item.title;
         dropzone.scrollIntoView({ behavior: "smooth" });
         fileInput.click();
       });
 
-      // Event listener for delete
-      const delBtn = tr.querySelector(".delete-file-btn");
-      delBtn.addEventListener("click", async () => {
-        if (confirm(`Are you sure you want to delete "${file.name}" from Supabase Storage?`)) {
-          const supabase = window.AppConfig.supabaseClient;
-          const { error: delErr } = await supabase.storage
-            .from(window.AppConfig.BUCKET_NAME)
-            .remove([file.name]);
-
-          if (delErr) {
-            alert(`Error deleting file: ${delErr.message}`);
-          } else {
-            showUploadAlert("info", `File "${file.name}" deleted.`);
+      // Delete Event
+      tr.querySelector(".delete-btn").addEventListener("click", async () => {
+        if (confirm(`Are you sure you want to delete "${item.title || item.storage_path}"? This cannot be undone.`)) {
+          try {
+            await window.AppConfig.deleteMaterial(item.storage_path, item.id);
+            showUploadAlert("info", `Deleted "${item.title || item.storage_path}".`);
             loadPublishedMaterials();
+          } catch (delErr) {
+            alert(`Error deleting material: ${delErr.message}`);
           }
         }
       });
@@ -512,25 +787,110 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // UI helpers
+  // ============================================================================
+  // 7. EDIT METADATA MODAL
+  // ============================================================================
+  function openEditModal(item) {
+    if (!editModal) return;
+    editItemId.value = item.id || "";
+    editItemStoragePath.value = item.storage_path || "";
+    editTitle.value = item.title || "";
+    editSubject.value = item.subject || "General Academic";
+    editStream.value = item.stream || "common";
+    editCategory.value = item.category || "notes";
+    editChapter.value = item.chapter ? String(item.chapter) : "";
+
+    editModal.style.display = "flex";
+  }
+
+  function closeEditModal() {
+    if (editModal) editModal.style.display = "none";
+  }
+
+  async function handleSaveEditedMetadata(e) {
+    e.preventDefault();
+    const id = editItemId.value;
+    const storagePath = editItemStoragePath.value;
+
+    const updated = {
+      title: editTitle.value.trim(),
+      storage_path: storagePath,
+      subject: editSubject.value,
+      subject_code: getSubjectCode(editSubject.value),
+      stream: editStream.value,
+      category: editCategory.value,
+      chapter: editChapter.value ? parseInt(editChapter.value, 10) : null,
+      chapter_label: editChapter.value ? `Chapter ${editChapter.value}` : "",
+      updated_at: new Date().toISOString()
+    };
+
+    try {
+      const supabase = window.AppConfig.supabaseClient;
+      if (supabase) {
+        if (id) {
+          await supabase.from("study_materials").update(updated).eq("id", id);
+        } else {
+          await supabase.from("study_materials").update(updated).eq("storage_path", storagePath);
+        }
+      }
+
+      closeEditModal();
+      showUploadAlert("success", `Updated details for "${updated.title}".`);
+      loadPublishedMaterials();
+    } catch (err) {
+      alert(`Failed to save changes: ${err.message}`);
+    }
+  }
+
+  // ============================================================================
+  // 8. HELPERS & UTILITIES
+  // ============================================================================
+  function getSubjectCode(subjectName) {
+    const found = window.AppConfig.SUBJECTS_CATALOG.find((s) => s.name === subjectName);
+    return found ? found.code : "GEN";
+  }
+
+  function getSubjectClass(subjectName) {
+    const map = {
+      "Geography": "subject-geography",
+      "Psychology": "subject-psychology",
+      "Mathematics": "subject-mathematics",
+      "Biology": "subject-biology",
+      "Physics": "subject-physics",
+      "Chemistry": "subject-chemistry",
+      "Logic & Critical Thinking": "subject-logic",
+      "Communicative English": "subject-english",
+      "Moral & Civic Education": "subject-civics",
+      "Economics": "subject-economics",
+      "History": "subject-history",
+      "Social Anthropology": "subject-anthropology",
+      "Emerging Technologies": "subject-emtech",
+      "Computer Programming": "subject-computing"
+    };
+    return map[subjectName] || "subject-general";
+  }
+
+  function getCategoryLabel(cat) {
+    const map = {
+      "notes": "Course Notes",
+      "questions": "Review Questions",
+      "exam": "Model Exam",
+      "summary": "Summary",
+      "image": "Diagram / Image"
+    };
+    return map[cat] || "Course Material";
+  }
+
+  function formatStreamLabel(stream) {
+    if (stream === "natural") return "Natural Science";
+    if (stream === "social") return "Social Science";
+    return "Common";
+  }
+
   function setProgress(percent, message) {
     if (progressBar) progressBar.style.width = `${percent}%`;
     if (progressPercent) progressPercent.textContent = `${percent}%`;
     if (progressText) progressText.textContent = message;
-  }
-
-  function showAuthError(msg) {
-    if (authError) {
-      authError.textContent = msg;
-      authError.style.display = "block";
-    }
-  }
-
-  function clearAuthError() {
-    if (authError) {
-      authError.textContent = "";
-      authError.style.display = "none";
-    }
   }
 
   function showUploadAlert(type, message) {
@@ -547,21 +907,26 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  function showAuthError(msg) {
+    if (authError) {
+      authError.textContent = msg;
+      authError.style.display = "block";
+    }
+  }
+
+  function clearAuthError() {
+    if (authError) {
+      authError.textContent = "";
+      authError.style.display = "none";
+    }
+  }
+
   function formatBytes(bytes) {
     if (!bytes || bytes === 0) return "0 Bytes";
     const k = 1024;
     const sizes = ["Bytes", "KB", "MB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
-  }
-
-  function formatDate(isoStr) {
-    try {
-      const d = new Date(isoStr);
-      return d.toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
-    } catch {
-      return "Recently";
-    }
   }
 
   function escapeHtml(str) {

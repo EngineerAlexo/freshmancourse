@@ -885,3 +885,364 @@ html, body {
     padding-bottom: 12px;
   }
 }
+
+
+/* ==========================================================================
+   SMART DOCUMENT PUBLISHER & MULTI-SUBJECT ENHANCEMENTS
+   ========================================================================== */
+
+/* Step Indicators */
+.publisher-steps {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  background: #ffffff;
+  padding: 16px 20px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  gap: 12px;
+}
+
+.publisher-step-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.publisher-step-item.active {
+  color: var(--primary-600);
+}
+
+.publisher-step-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-card-subtle);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.publisher-step-item.active .publisher-step-badge {
+  background: var(--primary-600);
+  color: #ffffff;
+}
+
+.publisher-step-divider {
+  flex: 1;
+  height: 2px;
+  background: var(--border-color);
+}
+
+/* Multi-file Queue Bar */
+.file-queue-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  background: var(--teal-50);
+  border: 1px solid var(--teal-100);
+  border-radius: var(--radius-md);
+  align-items: center;
+}
+
+.queue-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  font-size: 0.825rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.queue-pill:hover {
+  border-color: var(--teal-600);
+  background: #f8fafc;
+}
+
+.queue-pill.active {
+  background: var(--teal-600);
+  color: #ffffff;
+  border-color: var(--teal-600);
+}
+
+.queue-pill .pill-remove {
+  color: inherit;
+  opacity: 0.7;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.queue-pill .pill-remove:hover {
+  opacity: 1;
+}
+
+/* Smart Detection Banner */
+.smart-detection-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  margin-bottom: 18px;
+}
+
+.smart-detection-banner svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin-right: 8px;
+}
+
+/* Two-Column Publisher Layout */
+.publisher-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 992px) {
+  .publisher-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Document Live Preview Panel */
+.preview-panel-card {
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 520px;
+}
+
+.preview-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 14px;
+}
+
+.preview-badge-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+.preview-viewport-container {
+  flex: 1;
+  width: 100%;
+  min-height: 420px;
+  max-height: 600px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-iframe {
+  width: 100%;
+  height: 100%;
+  min-height: 420px;
+  border: none;
+}
+
+.preview-image-view {
+  max-width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+  padding: 12px;
+}
+
+.preview-empty-state {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 40px 20px;
+}
+
+/* Subject Badges with Dynamic Themes */
+.subject-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.785rem;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  border: 1px solid transparent;
+}
+
+.subject-geography { background: #ccfbf1; color: #0f766e; border-color: #99f6e4; }
+.subject-psychology { background: #ede9fe; color: #6d28d9; border-color: #ddd6fe; }
+.subject-mathematics { background: #dbeafe; color: #1e40af; border-color: #bfdbfe; }
+.subject-biology { background: #dcfce7; color: #15803d; border-color: #bbf7d0; }
+.subject-physics { background: #e0e7ff; color: #4338ca; border-color: #c7d2fe; }
+.subject-chemistry { background: #ffedd5; color: #c2410c; border-color: #fed7aa; }
+.subject-logic { background: #fae8ff; color: #86198f; border-color: #f5d0fe; }
+.subject-english { background: #e0f2fe; color: #0369a1; border-color: #bae6fd; }
+.subject-civics { background: #fef3c7; color: #b45309; border-color: #fde68a; }
+.subject-economics { background: #d1fae5; color: #065f46; border-color: #a7f3d0; }
+.subject-history { background: #fee2e2; color: #b91c1c; border-color: #fecaca; }
+.subject-anthropology { background: #fce7f3; color: #be185d; border-color: #fbcfe8; }
+.subject-emtech { background: #cffafe; color: #0e7490; border-color: #a5f3fc; }
+.subject-computing { background: #f1f5f9; color: #334155; border-color: #cbd5e1; }
+.subject-general { background: #f3f4f6; color: #374151; border-color: #e5e7eb; }
+
+/* Stream Pills */
+.stream-pill {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-card-subtle);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+}
+
+.stream-pill.natural { color: #1d4ed8; background: #eff6ff; border-color: #bfdbfe; }
+.stream-pill.social { color: #b45309; background: #fffbeb; border-color: #fde68a; }
+.stream-pill.common { color: #475569; background: #f8fafc; border-color: #e2e8f0; }
+
+/* Subject Section Grouping in Student View */
+.subject-group-section {
+  margin-bottom: 48px;
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  padding: 28px;
+  box-shadow: var(--shadow-sm);
+}
+
+.subject-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 18px;
+  border-bottom: 2px solid var(--bg-card-subtle);
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.subject-title-area {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.subject-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #ffffff;
+  box-shadow: var(--shadow-sm);
+}
+
+.subject-subgroup-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 2px;
+}
+
+.subject-subgroup-meta {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* Modal for Editing Metadata */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-dialog {
+  background: #ffffff;
+  border-radius: var(--radius-xl);
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--border-color);
+  padding: 28px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.modal-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.modal-close-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+
+.modal-close-btn:hover {
+  color: var(--text-main);
+}

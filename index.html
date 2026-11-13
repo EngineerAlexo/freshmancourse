@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Study Notes - University Freshman Educational Notes & Questions</title>
-  <meta name="description" content="Access and read university freshman study notes, chapters 1-6, and model exam questions online.">
+  <title>Freshman Ethiopia – Smart Study Notes & Questions</title>
+  <meta name="description" content="Access university freshman course notes, chapter materials, and model exam questions organized by subject and academic stream.">
   
   <!-- CSS Stylesheet -->
   <link rel="stylesheet" href="css/style.css">
@@ -21,8 +21,8 @@
           </svg>
         </div>
         <div class="brand-text">
-          <span class="brand-title">Study Notes</span>
-          <span class="brand-subtitle">Freshman Ethiopian University Notes</span>
+          <span class="brand-title">Freshman Ethiopia</span>
+          <span class="brand-subtitle">University Study Notes & Exam Questions</span>
         </div>
       </a>
 
@@ -39,11 +39,11 @@
     <!-- Hero Header -->
     <section class="hero-section">
       <div class="hero-pill">
-        <span>📖 University Study Library</span>
+        <span>📖 Ethiopian University Freshman Library</span>
       </div>
-      <h1 class="hero-title">Interactive Study Notes & Questions</h1>
+      <h1 class="hero-title">Academic Notes, Chapters & Exam Questions</h1>
       <p class="hero-description">
-        Read published course chapters (Chapter 1, 2, 3, 4, 5, 6...) and review model exam questions with interactive explanations and translations.
+        Browse and read verified university study materials organized by subject, academic stream, and chapters, featuring interactive explanations and Amharic translation popups.
       </p>
 
       <!-- Search & Filter Bar -->
@@ -55,31 +55,41 @@
           type="search" 
           id="search-input" 
           class="search-input" 
-          placeholder="Search by chapter number, topic, or model questions..."
+          placeholder="Search by subject (e.g. Geography), chapter, or question keywords..."
           aria-label="Search study notes"
         />
       </div>
     </section>
 
+    <!-- Stream Selection Pills -->
+    <div style="display: flex; justify-content: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;">
+      <button class="stream-filter-btn active btn btn-secondary btn-sm" data-stream="all">🎓 All Streams</button>
+      <button class="stream-filter-btn btn btn-secondary btn-sm" data-stream="common">🌐 Common Courses</button>
+      <button class="stream-filter-btn btn btn-secondary btn-sm" data-stream="natural">🔬 Natural Science</button>
+      <button class="stream-filter-btn btn btn-secondary btn-sm" data-stream="social">📚 Social Science</button>
+    </div>
+
     <!-- Category Tabs -->
     <div style="display: flex; justify-content: center; gap: 8px; margin-bottom: 28px; flex-wrap: wrap;">
       <button class="filter-tab active btn btn-secondary btn-sm" data-filter="all">All Materials</button>
-      <button class="filter-tab btn btn-secondary btn-sm" data-filter="chapter">Course Chapters</button>
-      <button class="filter-tab btn btn-secondary btn-sm" data-filter="questions">Questions & Exams</button>
+      <button class="filter-tab btn btn-secondary btn-sm" data-filter="notes">Course Notes</button>
+      <button class="filter-tab btn btn-secondary btn-sm" data-filter="questions">Questions & Practice</button>
+      <button class="filter-tab btn btn-secondary btn-sm" data-filter="exam">Model Exams</button>
+      <button class="filter-tab btn btn-secondary btn-sm" data-filter="image">Charts & Diagrams</button>
     </div>
 
     <!-- Available Notes Section -->
     <section class="chapters-section">
       <div class="section-header">
-        <h2 class="section-title">Published Materials</h2>
+        <h2 class="section-title">Organized Curriculum Materials</h2>
         <span id="materials-count-badge" class="text-muted" style="font-size: 0.875rem;">Loading materials...</span>
       </div>
 
       <!-- Loading State -->
       <div id="materials-loading" class="state-overlay" style="position: static; padding: 48px 0; background: transparent;">
         <div class="spinner"></div>
-        <div class="state-title">Checking Supabase Storage...</div>
-        <p class="state-desc">Retrieving uploaded chapters and questions.</p>
+        <div class="state-title">Loading Curriculum from Supabase...</div>
+        <p class="state-desc">Retrieving organized subjects, chapters, and questions.</p>
       </div>
 
       <!-- Empty State -->
@@ -87,19 +97,19 @@
         <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="#94a3b8" stroke-width="1.5" style="margin-bottom: 12px;">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
         </svg>
-        <div class="state-title">No Notes Uploaded Yet</div>
-        <p class="state-desc">The instructor has not published any HTML study notes or questions yet.</p>
+        <div class="state-title">No Materials Found</div>
+        <p class="state-desc">No study notes or questions match the selected filters. Log in to the Admin Portal to upload notes.</p>
       </div>
 
-      <!-- Dynamic Materials Grid -->
-      <div class="chapter-grid" id="materials-container">
-        <!-- Dynamic Cards Inserted Here by student.js -->
+      <!-- Dynamic Hierarchical Materials Container (Grouped by Subject) -->
+      <div id="hierarchical-materials-container">
+        <!-- Rendered dynamically by js/student.js -->
       </div>
     </section>
 
   </main>
 
-  <!-- Fullscreen Interactive Notes Reader Overlay -->
+  <!-- Fullscreen Interactive Notes & Diagram Reader Overlay -->
   <section id="reader-view" aria-label="Notes Reader">
     <header class="reader-header">
       <div class="reader-title-group">
@@ -134,7 +144,7 @@
       <div id="reader-loading" class="state-overlay">
         <div class="spinner"></div>
         <div class="state-title">Loading Document...</div>
-        <p class="state-desc">Fetching the latest HTML notes from Supabase Storage.</p>
+        <p class="state-desc">Fetching the latest learning material from Supabase Storage.</p>
       </div>
 
       <!-- Error State Overlay -->
@@ -152,13 +162,18 @@
         </div>
       </div>
 
-      <!-- Iframe with Sandbox Security -->
+      <!-- Iframe with Sandbox Security for HTML Notes -->
       <iframe 
         id="reader-iframe" 
         class="reader-iframe" 
         sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
         title="Study Notes Document Reader"
       ></iframe>
+
+      <!-- High-res Image Viewer for Graphic Notes / Charts -->
+      <div id="reader-image-container" style="display: none; width: 100%; height: 100%; overflow: auto; background: #0f172a; text-align: center; padding: 20px;">
+        <img id="reader-image" style="max-width: 95%; max-height: 90vh; object-fit: contain; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);" alt="Study Diagram" />
+      </div>
     </div>
   </section>
 

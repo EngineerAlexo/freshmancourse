@@ -1,22 +1,15 @@
 /**
- * Dynamic Student Notes Interface
- * Automatically fetches and displays all uploaded chapters (1, 2, 3, 4, 5, 6...)
- * and Question files directly from Supabase Storage.
+ * Dynamic Student Notes & Materials Engine
+ * Freshman Ethiopia Educational Platform
+ * Organizes materials hierarchically by Subject -> Chapters & Questions
  */
 
 document.addEventListener("DOMContentLoaded", () => {
-  // DOM Elements
-  const configAlert = document.getElementById("config-alert");
-  const openConfigBtn = document.getElementById("open-config-btn");
-  const configModal = document.getElementById("config-modal");
-  const closeConfigBtn = document.getElementById("close-config-btn");
-  const configForm = document.getElementById("config-form");
-  const configUrlInput = document.getElementById("config-supabase-url");
-  const configKeyInput = document.getElementById("config-supabase-key");
-
+  // DOM Elements - Search & Filters
   const searchInput = document.getElementById("search-input");
+  const streamFilterBtns = document.querySelectorAll(".stream-filter-btn");
   const filterTabs = document.querySelectorAll(".filter-tab");
-  const materialsContainer = document.getElementById("materials-container");
+  const hierarchicalContainer = document.getElementById("hierarchical-materials-container");
   const materialsLoading = document.getElementById("materials-loading");
   const materialsEmpty = document.getElementById("materials-empty");
   const materialsCountBadge = document.getElementById("materials-count-badge");
@@ -24,6 +17,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // Reader View Elements
   const readerView = document.getElementById("reader-view");
   const readerIframe = document.getElementById("reader-iframe");
+  const readerImageContainer = document.getElementById("reader-image-container");
+  const readerImage = document.getElementById("reader-image");
   const readerTitle = document.getElementById("reader-title");
   const readerLoading = document.getElementById("reader-loading");
   const readerError = document.getElementById("reader-error");
@@ -33,173 +28,226 @@ document.addEventListener("DOMContentLoaded", () => {
   const fullscreenBtn = document.getElementById("fullscreen-btn");
   const retryBtn = document.getElementById("retry-load-btn");
 
-  let allFiles = [];
-  let currentFilter = "all"; // 'all', 'chapter', 'questions'
-  let currentActiveFile = null;
+  // State
+  let allMaterials = [];
+  let currentStream = "all";   // 'all', 'common', 'natural', 'social'
+  let currentCategory = "all"; // 'all', 'notes', 'questions', 'exam', 'image'
+  let currentActiveItem = null;
 
-  // Initialize UI & load materials
   init();
 
   function init() {
-    setupConfigModal();
-    checkConfiguration();
     setupEventListeners();
+    loadMaterials();
   }
 
-  function checkConfiguration() {
-    if (!window.AppConfig.isConfigured()) {
-      if (configAlert) configAlert.style.display = "flex";
-      if (materialsLoading) materialsLoading.style.display = "none";
-      if (materialsEmpty) {
-        materialsEmpty.style.display = "block";
-        materialsEmpty.querySelector(".state-title").textContent = "Supabase Connection Required";
-        materialsEmpty.querySelector(".state-desc").textContent = 
-          "Please connect your Supabase project using the button above to load your uploaded study notes and questions.";
-      }
-      return false;
-    }
-
-    if (configAlert) configAlert.style.display = "none";
-    loadMaterialsFromStorage();
-    return true;
-  }
-
-  /**
-   * Fetch all files from Supabase Storage bucket 'chapter-files'
-   */
-  async function loadMaterialsFromStorage() {
+  // ============================================================================
+  // 1. DATA LOADING
+  // ============================================================================
+  async function loadMaterials() {
     if (materialsLoading) materialsLoading.style.display = "flex";
     if (materialsEmpty) materialsEmpty.style.display = "none";
-    if (materialsContainer) materialsContainer.innerHTML = "";
+    if (hierarchicalContainer) hierarchicalContainer.innerHTML = "";
 
-    const { data, error } = await window.AppConfig.listAllNotesFiles();
+    const { data, error } = await window.AppConfig.fetchPublishedMaterials();
 
     if (materialsLoading) materialsLoading.style.display = "none";
 
     if (error) {
-      console.error("Storage list error:", error);
+      console.error("Materials fetch error:", error);
       if (materialsEmpty) {
         materialsEmpty.style.display = "block";
-        materialsEmpty.querySelector(".state-title").textContent = "Unable to Load Notes";
-        materialsEmpty.querySelector(".state-desc").textContent = `Error: ${error}. Please ensure the 'chapter-files' bucket is public.`;
+        materialsEmpty.querySelector(".state-title").textContent = "Unable to Load Materials";
+        materialsEmpty.querySelector(".state-desc").textContent = `Error: ${error}. Please verify network connection or Supabase settings.`;
       }
       return;
     }
 
-    allFiles = data || [];
+    allMaterials = data || [];
 
-    if (allFiles.length === 0) {
+    if (allMaterials.length === 0) {
       if (materialsEmpty) {
         materialsEmpty.style.display = "block";
-        materialsEmpty.querySelector(".state-title").textContent = "No Notes Uploaded Yet";
-        materialsEmpty.querySelector(".state-desc").textContent = 
-          "The instructor has not published any study notes or questions yet. Log in to the Admin Portal to upload your HTML files.";
+        materialsEmpty.querySelector(".state-title").textContent = "No Materials Uploaded Yet";
+        materialsEmpty.querySelector(".state-desc").textContent = "The instructor has not published any study notes or questions yet. Log in to the Admin Portal to upload.";
       }
-      updateCounts(0, 0, 0);
+      updateCounts(0);
       return;
     }
 
-    // Sort files logically: chapter-1, chapter-2, ... then questions
-    allFiles.sort((a, b) => {
-      return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" });
-    });
+    renderHierarchicalCurriculum();
 
-    renderMaterialsGrid();
-
-    // Check if URL has ?read=fileName to auto-open
+    // Check for auto-open deep link (?read=storage_path)
     const urlParams = new URLSearchParams(window.location.search);
-    const autoFile = urlParams.get("read");
-    if (autoFile) {
-      const match = allFiles.find(f => f.name.toLowerCase() === autoFile.toLowerCase()) || { name: autoFile };
-      const title = window.AppConfig.formatMaterialTitle(match.name);
-      openReader(match.name, title);
+    const autoPath = urlParams.get("read");
+    if (autoPath) {
+      const match = allMaterials.find((m) => m.storage_path.toLowerCase() === autoPath.toLowerCase());
+      if (match) {
+        openReader(match);
+      } else {
+        openReader({ storage_path: autoPath, title: autoPath, file_type: autoPath.endsWith(".png") || autoPath.endsWith(".jpg") ? "image" : "html" });
+      }
     }
   }
 
-  /**
-   * Render cards for all matching files
-   */
-  function renderMaterialsGrid() {
-    if (!materialsContainer) return;
-    materialsContainer.innerHTML = "";
+  // ============================================================================
+  // 2. HIERARCHICAL RENDERING (SUBJECT -> CHAPTERS & QUESTIONS)
+  // ============================================================================
+  function renderHierarchicalCurriculum() {
+    if (!hierarchicalContainer) return;
+    hierarchicalContainer.innerHTML = "";
 
     const query = searchInput ? searchInput.value.toLowerCase().trim() : "";
 
-    // Count totals
-    let chapterCount = 0;
-    let questionsCount = 0;
-
-    allFiles.forEach(file => {
-      const cat = window.AppConfig.getMaterialCategory(file.name);
-      if (cat === "questions") questionsCount++;
-      else chapterCount++;
-    });
-
-    updateCounts(allFiles.length, chapterCount, questionsCount);
-
-    // Filter files
-    const filtered = allFiles.filter(file => {
-      const category = window.AppConfig.getMaterialCategory(file.name);
-      const title = window.AppConfig.formatMaterialTitle(file.name).toLowerCase();
-      const fileNameLower = file.name.toLowerCase();
-
-      // Category filter
-      if (currentFilter !== "all" && category !== currentFilter) {
-        return false;
+    // 1. Filter items based on active stream, category, and search query
+    const filtered = allMaterials.filter((item) => {
+      // Stream filter
+      if (currentStream !== "all") {
+        if (item.stream && item.stream !== currentStream && item.stream !== "common") {
+          return false;
+        }
       }
 
-      // Search query filter
-      if (query && !title.includes(query) && !fileNameLower.includes(query)) {
-        return false;
+      // Category filter
+      if (currentCategory !== "all") {
+        if (currentCategory === "questions") {
+          if (item.category !== "questions" && item.category !== "exam") return false;
+        } else if (item.category !== currentCategory) {
+          return false;
+        }
+      }
+
+      // Search query filter (matches subject, title, filename, chapter)
+      if (query) {
+        const titleMatch = (item.title || "").toLowerCase().includes(query);
+        const subjMatch = (item.subject || "").toLowerCase().includes(query);
+        const fileMatch = (item.storage_path || item.file_name || "").toLowerCase().includes(query);
+        const chapterMatch = (item.chapter_label || "").toLowerCase().includes(query) || (item.chapter ? `chapter ${item.chapter}`.includes(query) : false);
+
+        if (!titleMatch && !subjMatch && !fileMatch && !chapterMatch) {
+          return false;
+        }
       }
 
       return true;
     });
 
+    updateCounts(filtered.length);
+
     if (filtered.length === 0) {
       if (materialsEmpty) {
         materialsEmpty.style.display = "block";
         materialsEmpty.querySelector(".state-title").textContent = "No Matching Materials";
-        materialsEmpty.querySelector(".state-desc").textContent = "Try searching with different keywords or switch filters.";
+        materialsEmpty.querySelector(".state-desc").textContent = "No study notes or questions match your current search and filters. Try selecting 'All Streams' or clearing the search.";
       }
       return;
     }
 
     if (materialsEmpty) materialsEmpty.style.display = "none";
 
-    // Generate Cards
-    filtered.forEach(file => {
-      const card = createMaterialCard(file);
-      materialsContainer.appendChild(card);
+    // 2. Group items by Subject
+    const groupedBySubject = {};
+    filtered.forEach((item) => {
+      const subject = item.subject || "General Academic";
+      if (!groupedBySubject[subject]) {
+        groupedBySubject[subject] = [];
+      }
+      groupedBySubject[subject].push(item);
+    });
+
+    // 3. Render Subject Sections
+    const subjectNames = Object.keys(groupedBySubject).sort();
+
+    subjectNames.forEach((subjName) => {
+      const items = groupedBySubject[subjName];
+
+      // Sort items within subject: Course Notes (Ch 1, 2, 3...) first, then Questions & Exams
+      items.sort((a, b) => {
+        const orderA = a.category === "notes" ? 1 : 2;
+        const orderB = b.category === "notes" ? 1 : 2;
+        if (orderA !== orderB) return orderA - orderB;
+        if (a.chapter && b.chapter) return a.chapter - b.chapter;
+        return (a.title || "").localeCompare(b.title || "");
+      });
+
+      const section = createSubjectSection(subjName, items);
+      hierarchicalContainer.appendChild(section);
     });
   }
 
   /**
-   * Create an attractive card for a study material file
+   * Create an organized Subject Section card
    */
-  function createMaterialCard(file) {
-    const isQuestion = window.AppConfig.getMaterialCategory(file.name) === "questions";
-    const title = window.AppConfig.formatMaterialTitle(file.name);
-    const formattedSize = file.metadata ? formatBytes(file.metadata.size) : "";
-    const updatedTime = file.updated_at ? formatDate(file.updated_at) : "Recently published";
+  function createSubjectSection(subjectName, items) {
+    const section = document.createElement("section");
+    section.className = "subject-group-section";
 
+    const subjectMeta = window.AppConfig.SUBJECTS_CATALOG.find((s) => s.name === subjectName) || {
+      name: subjectName,
+      fullTitle: subjectName,
+      stream: items[0] ? items[0].stream : "common",
+      color: "#0d9488",
+    };
+
+    const initial = subjectName.charAt(0);
+    const streamLabel = formatStream(subjectMeta.stream);
+
+    section.innerHTML = `
+      <div class="subject-group-header">
+        <div class="subject-title-area">
+          <div class="subject-avatar" style="background: ${subjectMeta.color};">
+            ${escapeHtml(initial)}
+          </div>
+          <div>
+            <h3 class="subject-subgroup-title">${escapeHtml(subjectMeta.fullTitle || subjectName)}</h3>
+            <div class="subject-subgroup-meta">
+              <span>${items.length} Material${items.length === 1 ? '' : 's'}</span> • 
+              <span class="stream-pill ${subjectMeta.stream}">${streamLabel}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="chapter-grid"></div>
+    `;
+
+    const grid = section.querySelector(".chapter-grid");
+    items.forEach((item) => {
+      const card = createMaterialCard(item, subjectMeta);
+      grid.appendChild(card);
+    });
+
+    return section;
+  }
+
+  /**
+   * Create an individual study material card
+   */
+  function createMaterialCard(item, subjectMeta) {
     const card = document.createElement("article");
     card.className = "chapter-card";
 
+    const isQuestion = item.category === "questions" || item.category === "exam";
+    const isImage = item.file_type === "image";
+    const chapterBadgeText = item.chapter ? `Chapter ${item.chapter}` : (item.chapter_label || (isQuestion ? "Model Exam" : "Course Material"));
+    const updatedStr = item.updated_at ? formatDate(item.updated_at) : "Recently";
+    const sizeStr = item.file_size ? formatBytes(item.file_size) : "";
+
     card.innerHTML = `
       <div class="chapter-header">
-        <span class="chapter-badge" style="${isQuestion ? 'background: #fef3c7; color: #92400e;' : ''}">
-          ${isQuestion ? '❓ Practice Questions' : '📖 Study Notes'}
+        <span class="chapter-badge" style="${isQuestion ? 'background: #fef3c7; color: #92400e;' : (isImage ? 'background: #e0f2fe; color: #0369a1;' : '')}">
+          ${isImage ? '🖼️ Diagram' : (isQuestion ? '❓ Questions / Exam' : '📖 Course Notes')}
         </span>
-        <span class="chapter-tag">${file.name}</span>
+        <span class="chapter-tag">${escapeHtml(chapterBadgeText)}</span>
       </div>
 
-      <h3 class="chapter-title">${escapeHtml(title)}</h3>
+      <h3 class="chapter-title">${escapeHtml(item.title || item.file_name)}</h3>
       
       <p class="chapter-description">
         ${isQuestion 
-          ? 'Comprehensive practice exercises, model questions, and conceptual self-check answers.'
-          : 'Interactive academic chapter notes with bilingual explanations, diagrams, and popups.'
+          ? 'Practice questions, conceptual model problems, and review exercises for exam preparation.'
+          : (isImage 
+              ? 'Educational infographic and scientific diagram supporting lecture notes.'
+              : 'Interactive chapter notes with bilingual Amharic popups and structural explanations.')
         }
       </p>
 
@@ -214,114 +262,94 @@ document.addEventListener("DOMContentLoaded", () => {
           <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          Updated: ${updatedTime}
+          ${updatedStr}
         </span>
-        ${formattedSize ? `
+        ${sizeStr ? `
         <span class="feature-pill">
           <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
-          ${formattedSize}
+          ${sizeStr}
         </span>` : ''}
       </div>
 
       <div class="card-footer">
         <div style="font-size: 0.8rem; color: var(--text-muted);">
-          Format: <strong>HTML Interactive</strong>
+          Format: <strong>${isImage ? 'Image Graphic' : 'Interactive HTML'}</strong>
         </div>
-        <button class="btn btn-primary open-reader-btn" data-file="${escapeHtml(file.name)}" data-title="${escapeHtml(title)}">
+        <button class="btn btn-primary open-reader-btn">
           <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
           </svg>
-          Read Document
+          ${isImage ? 'View Diagram' : 'Read Notes'}
         </button>
       </div>
     `;
 
-    // Button event listener
-    const btn = card.querySelector(".open-reader-btn");
-    btn.addEventListener("click", () => {
-      openReader(file.name, title);
+    card.querySelector(".open-reader-btn").addEventListener("click", () => {
+      openReader(item);
     });
 
     return card;
   }
 
-  function updateCounts(total, chapters, questions) {
-    if (materialsCountBadge) {
-      materialsCountBadge.textContent = `${total} Document${total === 1 ? '' : 's'} Available`;
-    }
-
-    const tabAll = document.querySelector('[data-filter="all"]');
-    const tabCh = document.querySelector('[data-filter="chapter"]');
-    const tabQ = document.querySelector('[data-filter="questions"]');
-
-    if (tabAll) tabAll.textContent = `All Materials (${total})`;
-    if (tabCh) tabCh.textContent = `Course Chapters (${chapters})`;
-    if (tabQ) tabQ.textContent = `Questions & Exams (${questions})`;
-  }
-
-  /**
-   * Open the Fullscreen / Embedded Reader for a specific file
-   */
-  function openReader(fileName, title) {
-    currentActiveFile = fileName;
-    if (readerTitle) readerTitle.textContent = title || fileName;
+  // ============================================================================
+  // 3. FULLSCREEN INTERACTIVE READER (HTML & IMAGE SUPPORT)
+  // ============================================================================
+  function openReader(item) {
+    currentActiveItem = item;
+    if (readerTitle) readerTitle.textContent = item.title || item.storage_path;
 
     readerView.classList.add("active");
     document.body.style.overflow = "hidden";
 
-    loadIframeContent(fileName);
+    loadReaderContent(item);
   }
 
-  /**
-   * Fetch and render the HTML notes using srcdoc
-   * Supabase Storage serves HTML files with Content-Type: text/plain to prevent XSS.
-   * By fetching the text and injecting it via srcdoc (or Blob URL), the browser is
-   * forced to parse and render it as a full, rich HTML document with all styles,
-   * scripts, and Amharic translation popups intact.
-   */
-  async function loadIframeContent(fileName) {
+  async function loadReaderContent(item) {
     showReaderLoading();
 
-    const publicUrl = window.AppConfig.getNotesPublicUrl(fileName);
+    const publicUrl = window.AppConfig.getNotesPublicUrl(item.storage_path);
     if (!publicUrl) {
-      showReaderError("Could not resolve document URL", "Please verify your Supabase Storage configuration.");
+      showReaderError("Could not resolve file URL", "Please verify your Supabase Storage configuration.");
       return;
     }
 
+    // IMAGE RENDERER
+    if (item.file_type === "image" || /\.(png|jpe?g|webp|svg)$/i.test(item.storage_path)) {
+      readerIframe.style.display = "none";
+      readerImageContainer.style.display = "block";
+      readerImage.src = publicUrl;
+      readerImage.onload = () => hideReaderLoading();
+      readerImage.onerror = () => showReaderError("Image Failed to Load", "Could not fetch image from Supabase Storage.");
+      return;
+    }
+
+    // HTML INTERACTIVE RENDERER (srcdoc with Blob URL fallback)
+    readerImageContainer.style.display = "none";
+    readerIframe.style.display = "block";
+
     try {
-      // 1. Fetch raw HTML document from Supabase Storage
       const response = await fetch(publicUrl, { cache: "no-store" });
       if (!response.ok) {
-        throw new Error(`Failed to load file (HTTP ${response.status}: ${response.statusText})`);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const htmlContent = await response.text();
-
       if (!htmlContent || htmlContent.trim().length === 0) {
-        throw new Error("The retrieved file is empty.");
+        throw new Error("The document file is empty.");
       }
 
-      // 2. Render as rich HTML inside the sandboxed iframe using srcdoc
+      // Inject HTML into sandboxed iframe using srcdoc so interactive popups and styles run
       readerIframe.removeAttribute("src");
       readerIframe.srcdoc = htmlContent;
 
-      // Handle load event
-      readerIframe.onload = () => {
-        hideReaderLoading();
-      };
-
-      // Safety timeout to dismiss spinner once document is parsed
-      setTimeout(() => {
-        hideReaderLoading();
-      }, 400);
+      readerIframe.onload = () => hideReaderLoading();
+      setTimeout(() => hideReaderLoading(), 400);
 
     } catch (err) {
       console.warn("srcdoc fetch failed, attempting Blob URL fallback:", err);
-
       try {
-        // Fallback: Create a Blob with explicit text/html MIME type
         const res = await fetch(publicUrl);
         const text = await res.text();
         const blob = new Blob([text], { type: "text/html;charset=utf-8" });
@@ -330,11 +358,7 @@ document.addEventListener("DOMContentLoaded", () => {
         readerIframe.src = blobUrl;
         hideReaderLoading();
       } catch (fallbackErr) {
-        console.error("All rendering attempts failed:", fallbackErr);
-        showReaderError(
-          "Failed to render document",
-          `Could not render "${fileName}". Error: ${err.message}. Please check your network connection.`
-        );
+        showReaderError("Failed to Render Document", `Could not render document. ${err.message}`);
       }
     }
   }
@@ -342,26 +366,27 @@ document.addEventListener("DOMContentLoaded", () => {
   function closeReader() {
     readerView.classList.remove("active");
     document.body.style.overflow = "";
-    readerIframe.removeAttribute("srcdoc");
-    readerIframe.src = "about:blank";
-    currentActiveFile = null;
+    if (readerIframe) {
+      readerIframe.removeAttribute("srcdoc");
+      readerIframe.src = "about:blank";
+    }
+    if (readerImage) readerImage.src = "";
+    currentActiveItem = null;
 
-    // Clean up ?read= query parameter if present
     if (window.location.search.includes("read=")) {
-      const cleanUrl = window.location.pathname;
-      window.history.replaceState({}, document.title, cleanUrl);
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
   }
 
   function reloadActiveFile() {
-    if (currentActiveFile) {
-      loadIframeContent(currentActiveFile);
+    if (currentActiveItem) {
+      loadReaderContent(currentActiveItem);
     }
   }
 
   function toggleFullscreen() {
     if (!document.fullscreenElement) {
-      readerView.requestFullscreen().catch(err => console.warn(err));
+      readerView.requestFullscreen().catch((err) => console.warn(err));
     } else {
       document.exitFullscreen();
     }
@@ -385,25 +410,36 @@ document.addEventListener("DOMContentLoaded", () => {
     if (readerErrorMsg) readerErrorMsg.textContent = message;
   }
 
+  // ============================================================================
+  // 4. EVENT LISTENERS
+  // ============================================================================
   function setupEventListeners() {
     // Search input
     if (searchInput) {
-      searchInput.addEventListener("input", () => {
-        renderMaterialsGrid();
-      });
+      searchInput.addEventListener("input", renderHierarchicalCurriculum);
     }
 
-    // Filter tabs
-    filterTabs.forEach(tab => {
-      tab.addEventListener("click", () => {
-        filterTabs.forEach(t => t.classList.remove("active"));
-        tab.classList.add("active");
-        currentFilter = tab.getAttribute("data-filter") || "all";
-        renderMaterialsGrid();
+    // Stream filters
+    streamFilterBtns.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        streamFilterBtns.forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        currentStream = btn.getAttribute("data-stream") || "all";
+        renderHierarchicalCurriculum();
       });
     });
 
-    // Reader buttons
+    // Category tabs
+    filterTabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        filterTabs.forEach((t) => t.classList.remove("active"));
+        tab.classList.add("active");
+        currentCategory = tab.getAttribute("data-filter") || "all";
+        renderHierarchicalCurriculum();
+      });
+    });
+
+    // Reader controls
     if (backBtn) backBtn.addEventListener("click", closeReader);
     if (reloadBtn) reloadBtn.addEventListener("click", reloadActiveFile);
     if (fullscreenBtn) fullscreenBtn.addEventListener("click", toggleFullscreen);
@@ -416,45 +452,21 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  /**
-   * Supabase Connection Settings Modal Setup
-   */
-  function setupConfigModal() {
-    const creds = window.AppConfig.getActiveCredentials();
-    if (configUrlInput) configUrlInput.value = creds.url || "";
-    if (configKeyInput) configKeyInput.value = creds.key || "";
-
-    if (openConfigBtn) {
-      openConfigBtn.addEventListener("click", () => {
-        configModal.style.display = "flex";
-      });
-    }
-
-    if (closeConfigBtn) {
-      closeConfigBtn.addEventListener("click", () => {
-        configModal.style.display = "none";
-      });
-    }
-
-    if (configForm) {
-      configForm.addEventListener("submit", (e) => {
-        e.preventDefault();
-        const url = configUrlInput.value.trim();
-        const key = configKeyInput.value.trim();
-
-        if (!url || !key) {
-          alert("Please enter both the Supabase URL and the Anon Key.");
-          return;
-        }
-
-        window.AppConfig.saveCredentials(url, key);
-        configModal.style.display = "none";
-        checkConfiguration();
-      });
+  // ============================================================================
+  // 5. UTILITIES
+  // ============================================================================
+  function updateCounts(total) {
+    if (materialsCountBadge) {
+      materialsCountBadge.textContent = `${total} Document${total === 1 ? '' : 's'} Available`;
     }
   }
 
-  // Utilities
+  function formatStream(stream) {
+    if (stream === "natural") return "Natural Science";
+    if (stream === "social") return "Social Science";
+    return "Common Courses";
+  }
+
   function formatBytes(bytes) {
     if (!bytes || bytes === 0) return "0 Bytes";
     const k = 1024;
