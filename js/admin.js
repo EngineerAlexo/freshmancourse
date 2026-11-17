@@ -26,6 +26,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const uploadAlert = document.getElementById("upload-alert");
 
   // Elements - Smart Metadata Form
+  const metaForm = document.getElementById("material-meta-form");
   const detectionBanner = document.getElementById("detection-banner");
   const detectionMessage = document.getElementById("detection-message");
   const metaTitle = document.getElementById("meta-title");
@@ -186,11 +187,19 @@ document.addEventListener("DOMContentLoaded", () => {
   // 2. MULTI-FILE SELECTION & QUEUE
   // ============================================================================
   function setupEventListeners() {
+    // Prevent accidental full-page navigation on dragging files
+    window.addEventListener("dragover", (e) => e.preventDefault());
+    window.addEventListener("drop", (e) => e.preventDefault());
+
     if (selectFileBtn && fileInput) {
-      selectFileBtn.addEventListener("click", () => fileInput.click());
+      selectFileBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        fileInput.click();
+      });
     }
 
     if (fileInput) {
+      fileInput.addEventListener("click", (e) => e.stopPropagation());
       fileInput.addEventListener("change", (e) => {
         if (e.target.files && e.target.files.length > 0) {
           addFilesToQueue(Array.from(e.target.files));
@@ -200,6 +209,15 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (dropzone) {
+      dropzone.style.cursor = "pointer";
+
+      // Clicking anywhere inside dropzone opens file dialog
+      dropzone.addEventListener("click", (e) => {
+        if (e.target !== selectFileBtn && (!selectFileBtn || !selectFileBtn.contains(e.target))) {
+          if (fileInput) fileInput.click();
+        }
+      });
+
       ["dragenter", "dragover"].forEach((eventName) => {
         dropzone.addEventListener(eventName, (e) => {
           e.preventDefault();
@@ -208,7 +226,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       });
 
-      ["dragleave", "drop"].forEach((eventName) => {
+      ["dragleave"].forEach((eventName) => {
         dropzone.addEventListener(eventName, (e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -217,7 +235,10 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       dropzone.addEventListener("drop", (e) => {
-        if (e.dataTransfer && e.dataTransfer.files.length > 0) {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.remove("dragover");
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
           addFilesToQueue(Array.from(e.dataTransfer.files));
         }
       });
@@ -228,7 +249,7 @@ document.addEventListener("DOMContentLoaded", () => {
       autoNameBtn.addEventListener("click", formatSuggestedFilename);
     }
 
-    // Dynamic field change triggers
+    // Dynamic form synchronization
     [metaSubject, metaChapter, metaCategory].forEach((el) => {
       if (el) el.addEventListener("change", () => {
         syncFormToCurrentItem();
@@ -236,16 +257,16 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
 
-    if (metaTitle) {
-      metaTitle.addEventListener("input", syncFormToCurrentItem);
-    }
+    if (metaTitle) metaTitle.addEventListener("input", syncFormToCurrentItem);
+    if (metaStream) metaStream.addEventListener("change", syncFormToCurrentItem);
+    if (metaStoragePath) metaStoragePath.addEventListener("input", syncFormToCurrentItem);
 
-    if (metaStream) {
-      metaStream.addEventListener("change", syncFormToCurrentItem);
-    }
-
-    if (metaStoragePath) {
-      metaStoragePath.addEventListener("input", syncFormToCurrentItem);
+    // Form submit listener (prevents page reload on pressing Enter)
+    if (metaForm) {
+      metaForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        publishCurrentItem();
+      });
     }
 
     // Publish buttons
@@ -274,72 +295,80 @@ document.addEventListener("DOMContentLoaded", () => {
    * Add dropped/selected files to upload queue and trigger smart reading
    */
   async function addFilesToQueue(files) {
-    clearUploadAlert();
-    const validExtensions = [".html", ".htm", ".png", ".jpg", ".jpeg", ".webp"];
+    try {
+      clearUploadAlert();
+      const validExtensions = [".html", ".htm", ".png", ".jpg", ".jpeg", ".webp"];
 
-    const acceptedFiles = files.filter((file) => {
-      const lower = file.name.toLowerCase();
-      return validExtensions.some((ext) => lower.endsWith(ext));
-    });
+      const acceptedFiles = files.filter((file) => {
+        const lower = file.name.toLowerCase();
+        return validExtensions.some((ext) => lower.endsWith(ext));
+      });
 
-    if (acceptedFiles.length === 0) {
-      showUploadAlert("error", "No valid files selected. Please upload HTML or Image files (.html, .htm, .png, .jpg, .webp).");
-      return;
-    }
+      if (acceptedFiles.length === 0) {
+        showUploadAlert("error", "No valid files selected. Please select HTML or Image files (.html, .htm, .png, .jpg, .webp).");
+        return;
+      }
 
-    for (const file of acceptedFiles) {
-      const item = {
-        file,
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        isImage: file.type.startsWith("image/") || /\.(png|jpe?g|webp)$/i.test(file.name),
-        textContent: "",
-        previewUrl: "",
-        meta: null,
-        status: "pending"
-      };
+      for (const file of acceptedFiles) {
+        const item = {
+          file,
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          isImage: file.type.startsWith("image/") || /\.(png|jpe?g|webp)$/i.test(file.name),
+          textContent: "",
+          previewUrl: "",
+          meta: null,
+          status: "pending"
+        };
 
-      await processQueueItem(item);
-      uploadQueue.push(item);
-    }
+        await processQueueItem(item);
+        uploadQueue.push(item);
+      }
 
-    renderQueuePills();
+      renderQueuePills();
 
-    // Select the newly added file (or first in queue)
-    if (activeIndex === -1 || activeIndex >= uploadQueue.length) {
-      selectQueueItem(0);
-    } else {
+      // Select the newly added file
       selectQueueItem(uploadQueue.length - 1);
+    } catch (err) {
+      console.error("Error adding file to queue:", err);
+      showUploadAlert("error", `Could not process file: ${err.message || err}`);
     }
   }
 
   /**
-   * Read file content & run smart identification
+   * Read file content & run smart identification with fail-safe handlers
    */
   async function processQueueItem(item) {
     return new Promise((resolve) => {
       const reader = new FileReader();
 
+      const finish = () => {
+        if (!item.meta) {
+          item.meta = window.AppConfig.smartIdentifyDocument({
+            filename: item.name,
+            textContent: item.textContent || "",
+            mimeType: item.type || (item.isImage ? "image/jpeg" : "text/html"),
+          });
+        }
+        resolve(item);
+      };
+
+      reader.onerror = () => {
+        console.warn("FileReader error reading file:", item.name);
+        finish();
+      };
+
       if (item.isImage) {
         reader.onload = (e) => {
           item.previewUrl = e.target.result;
-          item.meta = window.AppConfig.smartIdentifyDocument({
-            filename: item.name,
-            mimeType: item.type || "image/jpeg"
-          });
-          resolve(item);
+          finish();
         };
         reader.readAsDataURL(item.file);
       } else {
         reader.onload = (e) => {
           item.textContent = e.target.result;
-          item.meta = window.AppConfig.smartIdentifyDocument({
-            filename: item.name,
-            textContent: item.textContent,
-            mimeType: "text/html"
-          });
-          resolve(item);
+          finish();
         };
         reader.readAsText(item.file);
       }
@@ -347,7 +376,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /**
-   * Render the Queue Pills
+   * Render Queue Pills
    */
   function renderQueuePills() {
     if (!fileQueueBar || !queueContainer) return;
@@ -364,7 +393,7 @@ document.addEventListener("DOMContentLoaded", () => {
     uploadQueue.forEach((item, index) => {
       const pill = document.createElement("div");
       pill.className = `queue-pill ${index === activeIndex ? "active" : ""}`;
-
+      
       const icon = item.isImage ? "🖼️" : "📄";
       const subjectTag = item.meta ? `[${item.meta.subject}]` : "";
 
@@ -438,13 +467,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (metaCategory) metaCategory.value = meta.category || "notes";
     if (metaChapter) metaChapter.value = meta.chapter ? String(meta.chapter) : "";
 
-    // Target storage filename
     if (!meta.storagePath) {
       meta.storagePath = generateCleanStoragePath(meta, item.name);
     }
     if (metaStoragePath) metaStoragePath.value = meta.storagePath;
 
-    // Detection Banner
     if (detectionBanner && detectionMessage) {
       detectionBanner.style.display = "flex";
       detectionMessage.textContent = meta.detectionNotes && meta.detectionNotes.length > 0
@@ -479,7 +506,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function generateCleanStoragePath(meta, originalName) {
     const ext = (originalName.split(".").pop() || "html").toLowerCase();
     const subjectSlug = (meta.subject || "general").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
-
+    
     let base = "";
     if (meta.chapter) {
       base = `${subjectSlug}_chapter_${meta.chapter}`;
@@ -491,7 +518,6 @@ document.addEventListener("DOMContentLoaded", () => {
       base = `${subjectSlug}_notes`;
     }
 
-    // Preserve image extension
     return `${base}.${ext}`;
   }
 
@@ -517,7 +543,6 @@ document.addEventListener("DOMContentLoaded", () => {
       if (previewImage) previewImage.style.display = "none";
       if (previewIframe) {
         previewIframe.style.display = "block";
-        // Render raw HTML using srcdoc so interactive popups, styles, and scripts run!
         previewIframe.srcdoc = item.textContent || "<p style='padding:20px; font-family:sans-serif;'>Empty document.</p>";
       }
     }
@@ -560,7 +585,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // 5. PUBLISHING ENGINE
   // ============================================================================
   async function publishCurrentItem() {
-    if (activeIndex === -1 || !uploadQueue[activeIndex]) return;
+    if (activeIndex === -1 || !uploadQueue[activeIndex]) {
+      showUploadAlert("error", "No document selected to publish. Please choose a file first.");
+      return;
+    }
     syncFormToCurrentItem();
 
     const item = uploadQueue[activeIndex];
@@ -603,7 +631,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       showUploadAlert(
         "success",
-        `Success! "${item.meta.title}" has been published to "${targetPath}". Students can now read and view it immediately.`
+        `Success! "<strong>${escapeHtml(item.meta.title)}</strong>" has been published to storage path <code>${escapeHtml(targetPath)}</code>. Students can now read and view it immediately.`
       );
 
       // Remove from queue
@@ -613,7 +641,12 @@ document.addEventListener("DOMContentLoaded", () => {
       loadPublishedMaterials();
     } catch (err) {
       console.error("Publishing error:", err);
-      showUploadAlert("error", `Publish failed: ${err.message || "Could not publish material."}`);
+      if (err.message && err.message.includes("not signed in")) {
+        handleSignedOut();
+        showAuthError("Your administrator session has expired. Please sign in again.");
+      } else {
+        showUploadAlert("error", `Publish failed: ${err.message || "Could not publish material."}`);
+      }
       publishCurrentBtn.disabled = false;
       if (progressContainer) progressContainer.classList.remove("active");
     }
@@ -633,7 +666,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const total = uploadQueue.length;
 
     for (let i = 0; i < total; i++) {
-      selectQueueItem(0); // Always publish head of queue
+      selectQueueItem(0);
       await publishCurrentItem();
       successCount++;
     }
@@ -679,7 +712,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const streamFilter = tableStreamFilter ? tableStreamFilter.value : "all";
 
     const filtered = allPublishedMaterials.filter((item) => {
-      // Search
       if (query) {
         const titleMatch = (item.title || "").toLowerCase().includes(query);
         const fileMatch = (item.storage_path || item.file_name || "").toLowerCase().includes(query);
@@ -687,13 +719,8 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!titleMatch && !fileMatch && !subjMatch) return false;
       }
 
-      // Subject
       if (subjectFilter !== "all" && item.subject !== subjectFilter) return false;
-
-      // Category
       if (categoryFilter !== "all" && item.category !== categoryFilter) return false;
-
-      // Stream
       if (streamFilter !== "all" && item.stream !== streamFilter && item.stream !== "common") return false;
 
       return true;
@@ -758,10 +785,8 @@ document.addEventListener("DOMContentLoaded", () => {
         </td>
       `;
 
-      // Edit Details Event
       tr.querySelector(".edit-details-btn").addEventListener("click", () => openEditModal(item));
 
-      // Replace Event
       tr.querySelector(".replace-btn").addEventListener("click", () => {
         if (metaStoragePath) metaStoragePath.value = item.storage_path;
         if (metaSubject) metaSubject.value = item.subject;
@@ -770,7 +795,6 @@ document.addEventListener("DOMContentLoaded", () => {
         fileInput.click();
       });
 
-      // Delete Event
       tr.querySelector(".delete-btn").addEventListener("click", async () => {
         if (confirm(`Are you sure you want to delete "${item.title || item.storage_path}"? This cannot be undone.`)) {
           try {
@@ -896,14 +920,15 @@ document.addEventListener("DOMContentLoaded", () => {
   function showUploadAlert(type, message) {
     if (!uploadAlert) return;
     uploadAlert.className = `alert-banner ${type}`;
-    uploadAlert.textContent = message;
+    uploadAlert.innerHTML = message;
     uploadAlert.style.display = "block";
+    uploadAlert.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
   function clearUploadAlert() {
     if (uploadAlert) {
       uploadAlert.style.display = "none";
-      uploadAlert.textContent = "";
+      uploadAlert.innerHTML = "";
     }
   }
 

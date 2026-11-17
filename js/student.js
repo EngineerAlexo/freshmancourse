@@ -243,12 +243,12 @@ document.addEventListener("DOMContentLoaded", () => {
       <h3 class="chapter-title">${escapeHtml(item.title || item.file_name)}</h3>
       
       <p class="chapter-description">
-        ${isQuestion 
-          ? 'Practice questions, conceptual model problems, and review exercises for exam preparation.'
-          : (isImage 
-              ? 'Educational infographic and scientific diagram supporting lecture notes.'
-              : 'Interactive chapter notes with bilingual Amharic popups and structural explanations.')
-        }
+        ${isQuestion
+        ? 'Practice questions, conceptual model problems, and review exercises for exam preparation.'
+        : (isImage
+          ? 'Educational infographic and scientific diagram supporting lecture notes.'
+          : (item.description || 'Comprehensive university lecture notes covering fundamental concepts and curriculum topics.'))
+      }
       </p>
 
       <div class="chapter-features">
@@ -256,7 +256,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
           </svg>
-          ${isQuestion ? 'Model Exam / Review' : 'Amharic Explanations'}
+          ${isQuestion ? 'Model Exam / Review' : 'Verified Curriculum'}
         </span>
         <span class="feature-pill">
           <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -274,14 +274,15 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>
 
       <div class="card-footer">
-        <div style="font-size: 0.8rem; color: var(--text-muted);">
-          Format: <strong>${isImage ? 'Image Graphic' : 'Interactive HTML'}</strong>
+        <div style="font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+          <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--teal-500);"></span>
+          <span>${isImage ? 'Visual Diagram' : 'Interactive Study Material'}</span>
         </div>
         <button class="btn btn-primary open-reader-btn">
-          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
           </svg>
-          ${isImage ? 'View Diagram' : 'Read Notes'}
+          <span>${isImage ? 'View Diagram' : 'Read Notes'}</span>
         </button>
       </div>
     `;

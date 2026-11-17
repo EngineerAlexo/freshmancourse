@@ -207,11 +207,6 @@ if (typeof window.supabase !== "undefined") {
 // ============================================================================
 // 3. SMART DOCUMENT IDENTIFICATION ALGORITHM
 // ============================================================================
-/**
- * Intelligently extracts Subject, Chapter, Category, and Stream from:
- * 1. Filename (e.g., "GeographyChapter1 (2).html", "Math_Model_Exam.png")
- * 2. File Content (HTML <title>, <h1>, meta tags, heading text, keywords)
- */
 function smartIdentifyDocument({ filename = "", textContent = "", mimeType = "" }) {
   const result = {
     title: "",
@@ -227,7 +222,7 @@ function smartIdentifyDocument({ filename = "", textContent = "", mimeType = "" 
   };
 
   const lowerName = filename.toLowerCase();
-  const lowerContent = (textContent || "").slice(0, 8000).toLowerCase(); // Scan first 8KB of content
+  const lowerContent = (textContent || "").slice(0, 8000).toLowerCase();
   const combined = `${lowerName} ${lowerContent}`;
 
   // 1. Detect File Type
@@ -256,7 +251,6 @@ function smartIdentifyDocument({ filename = "", textContent = "", mimeType = "" 
   }
 
   // 3. Identify Chapter Number
-  // Match patterns like "Chapter 1", "Chapter1", "Ch-2", "Unit 3", "ch_04"
   const chMatch = lowerName.match(/(?:chapter|ch|unit)[-_.\s]*(\d{1,2})/i) ||
     lowerContent.match(/<h[1-3][^>]*>[\s\S]*?(?:chapter|ch|unit)\s*(\d{1,2})/i) ||
     lowerContent.match(/(?:chapter|unit)\s*(\d{1,2})/i);
@@ -276,20 +270,18 @@ function smartIdentifyDocument({ filename = "", textContent = "", mimeType = "" 
 
   SUBJECTS_CATALOG.forEach((subj) => {
     let score = 0;
-
-    // Check filename matches (higher weight)
     subj.keywords.forEach((kw) => {
-      if (lowerName.includes(kw)) {
-        score += 8; // Heavy weight for filename
+      const cleanKw = kw.toLowerCase().trim();
+      if (!cleanKw) return;
+
+      // Match against filename (higher weight)
+      if (lowerName.includes(cleanKw)) {
+        score += 8;
       }
-    });
 
-    // Check HTML content matches
-    subj.keywords.forEach((kw) => {
-      const regex = new RegExp(`\\b${kw}\\b`, "gi");
-      const matches = lowerContent.match(regex);
-      if (matches) {
-        score += Math.min(matches.length, 5); // Up to 5 points
+      // Match against document content
+      if (lowerContent.includes(cleanKw)) {
+        score += 3;
       }
     });
 
@@ -306,11 +298,10 @@ function smartIdentifyDocument({ filename = "", textContent = "", mimeType = "" 
     result.confidence = highestScore >= 8 ? "high" : "medium";
     result.detectionNotes.push(`Auto-detected subject: ${bestSubject.name} (${result.confidence} confidence)`);
   } else {
-    result.detectionNotes.push("No specific subject matched; defaulted to General Academic");
+    result.detectionNotes.push("Defaulted to General Academic");
   }
 
   // 5. Generate Smart Title
-  // Try extracting <title> tag if meaningful
   let extractedTitle = "";
   if (result.fileType === "html" && textContent) {
     const titleMatch = textContent.match(/<title[^>]*>([^<]+)<\/title>/i);
@@ -320,7 +311,6 @@ function smartIdentifyDocument({ filename = "", textContent = "", mimeType = "" 
         extractedTitle = raw;
       }
     }
-    // Also check first <h1> tag
     if (!extractedTitle) {
       const h1Match = textContent.match(/<h1[^>]*>([^<]+)<\/h1>/i);
       if (h1Match && h1Match[1]) {
@@ -335,7 +325,6 @@ function smartIdentifyDocument({ filename = "", textContent = "", mimeType = "" 
   if (extractedTitle) {
     result.title = extractedTitle;
   } else {
-    // Synthesize standard clean title
     const subjectPrefix = result.subject !== "General Academic" ? result.subject : "";
     const chapterPart = result.chapter ? `Chapter ${result.chapter}` : "";
     let categoryPart = "Study Notes";
@@ -375,10 +364,7 @@ function getNotesPublicUrl(filePath) {
 }
 
 /**
- * Fetch all study materials with intelligent fallback:
- * 1. Queries public.study_materials table if created.
- * 2. If table does not exist yet (code 42P01), seamlessly falls back to listing
- *    the storage bucket and running smart identification on each file on the fly!
+ * Fetch all study materials
  */
 async function fetchPublishedMaterials(filter = {}) {
   if (!supabaseClient) {
@@ -407,15 +393,8 @@ async function fetchPublishedMaterials(filter = {}) {
 
     const { data: dbData, error: dbError } = await query;
 
-    // If query succeeded and returned records, return them!
     if (!dbError && dbData && dbData.length > 0) {
       return { data: dbData, error: null, source: "database" };
-    }
-
-    // If the database table exists but is empty, or table has not been created yet:
-    // Check if error is table missing (42P01) or empty
-    if (dbError && dbError.code !== "42P01" && dbError.message && !dbError.message.includes("relation \"public.study_materials\" does not exist")) {
-      console.warn("DB query notice, checking storage fallback:", dbError.message);
     }
 
     // 2. Fallback: Query storage bucket directly and run smart identification
@@ -424,7 +403,6 @@ async function fetchPublishedMaterials(filter = {}) {
       return { data: dbData || [], error: storageErr, source: "storage" };
     }
 
-    // Convert raw storage objects to structured material objects
     const synthesized = (storageFiles || []).map((file) => {
       const smart = smartIdentifyDocument({ filename: file.name });
       return {
@@ -468,7 +446,6 @@ async function listAllStorageFiles() {
 
     if (error) return { data: [], error: error.message };
 
-    // Support HTML and Images
     const validFiles = (data || []).filter((item) => {
       const name = item.name.toLowerCase();
       return (
@@ -490,31 +467,48 @@ async function listAllStorageFiles() {
 }
 
 /**
- * Upload a document or image to Supabase Storage with clean upsert
+ * Upload a document or image to Supabase Storage with clean upsert & detailed errors
  */
 async function uploadMaterialFile(file, storagePath, mimeType) {
   if (!supabaseClient) throw new Error("Supabase client is not initialized.");
 
+  // Check active session
+  const { data: sessionData } = await supabaseClient.auth.getSession();
+  if (!sessionData || !sessionData.session) {
+    throw new Error("You are not signed in. Please log in to the Admin Portal to upload files.");
+  }
+
   let determinedMime = mimeType;
-  if (!determinedMime) {
+  if (!determinedMime || determinedMime === "application/octet-stream") {
     const ext = (file.name.split(".").pop() || "").toLowerCase();
     if (ext === "html" || ext === "htm") determinedMime = "text/html";
     else if (ext === "png") determinedMime = "image/png";
     else if (ext === "jpg" || ext === "jpeg") determinedMime = "image/jpeg";
     else if (ext === "webp") determinedMime = "image/webp";
     else if (ext === "svg") determinedMime = "image/svg+xml";
-    else determinedMime = "application/octet-stream";
+    else determinedMime = "text/html";
   }
+
+  const cleanPath = storagePath.startsWith("/") ? storagePath.substring(1) : storagePath;
 
   const { data, error } = await supabaseClient.storage
     .from(BUCKET_NAME)
-    .upload(storagePath, file, {
+    .upload(cleanPath, file, {
       upsert: true,
       contentType: determinedMime,
       cacheControl: "0",
     });
 
-  if (error) throw error;
+  if (error) {
+    console.error("Storage upload error:", error);
+    if (error.message && (error.message.includes("row-level security") || error.message.includes("policy"))) {
+      throw new Error(`Upload blocked by Supabase Row Level Security policy. Please execute the updated SQL script in 'supabase/schema.sql' in your Supabase SQL Editor.`);
+    }
+    if (error.statusCode === "404" || (error.message && error.message.includes("Bucket not found"))) {
+      throw new Error(`Storage bucket '${BUCKET_NAME}' was not found. Please run 'supabase/schema.sql' in your Supabase SQL Editor.`);
+    }
+    throw error;
+  }
   return data;
 }
 
@@ -525,9 +519,13 @@ async function saveMaterialMetadata(materialRecord) {
   if (!supabaseClient) return { error: "Supabase client not initialized." };
 
   try {
+    const cleanPath = materialRecord.storage_path.startsWith("/")
+      ? materialRecord.storage_path.substring(1)
+      : materialRecord.storage_path;
+
     const payload = {
       title: materialRecord.title,
-      storage_path: materialRecord.storage_path,
+      storage_path: cleanPath,
       file_name: materialRecord.file_name,
       file_type: materialRecord.file_type || "html",
       mime_type: materialRecord.mime_type || "text/html",
@@ -566,52 +564,27 @@ async function saveMaterialMetadata(materialRecord) {
  */
 async function deleteMaterial(storagePath, recordId) {
   if (!supabaseClient) throw new Error("Supabase client is not initialized.");
+  const cleanPath = storagePath.startsWith("/") ? storagePath.substring(1) : storagePath;
 
-  // 1. Delete from Storage
   const { error: storageError } = await supabaseClient.storage
     .from(BUCKET_NAME)
-    .remove([storagePath]);
+    .remove([cleanPath]);
 
   if (storageError) {
     console.warn("Storage deletion warning:", storageError.message);
   }
 
-  // 2. Delete from DB table if available
   try {
     if (recordId) {
       await supabaseClient.from("study_materials").delete().eq("id", recordId);
     } else {
-      await supabaseClient.from("study_materials").delete().eq("storage_path", storagePath);
+      await supabaseClient.from("study_materials").delete().eq("storage_path", cleanPath);
     }
   } catch (dbErr) {
     console.warn("Database deletion note:", dbErr);
   }
 
   return { success: true };
-}
-
-/**
- * Verify if authenticated user is admin
- */
-async function checkIsAuthorizedAdmin(userId) {
-  if (!supabaseClient || !userId) return false;
-
-  try {
-    const { data, error } = await supabaseClient
-      .from("admin_users")
-      .select("id, email, is_active")
-      .eq("id", userId)
-      .eq("is_active", true)
-      .maybeSingle();
-
-    if (error) {
-      return false;
-    }
-
-    return Boolean(data && data.is_active);
-  } catch (err) {
-    return false;
-  }
 }
 
 // Export to window
@@ -631,5 +604,4 @@ window.AppConfig = {
   uploadMaterialFile,
   saveMaterialMetadata,
   deleteMaterial,
-  checkIsAuthorizedAdmin,
 };

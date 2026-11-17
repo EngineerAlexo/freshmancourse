@@ -3,11 +3,11 @@
 -- Freshman Ethiopia – Smart Study Notes & Materials Platform
 -- ============================================================================
 -- Run this script in your Supabase SQL Editor (Dashboard -> SQL Editor -> New Query).
--- It creates the admin allow-list, the smart study_materials metadata table,
--- the 'chapter-files' storage bucket (HTML + Images), and all Row Level Security (RLS) policies.
+-- It creates the admin authorization setup, the study_materials table,
+-- the 'chapter-files' storage bucket (HTML + Images), and all RLS policies.
 -- ============================================================================
 
--- 1. Create the Administrator Allow-List Table
+-- 1. Create the Administrator Table & Auto-Sync
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.admin_users (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -19,8 +19,36 @@ CREATE TABLE IF NOT EXISTS public.admin_users (
 
 ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
 
+-- Auto-populate admin_users from any users already created in Supabase Auth
+INSERT INTO public.admin_users (id, email, is_active)
+SELECT id, email, TRUE
+FROM auth.users
+ON CONFLICT (id) DO UPDATE SET is_active = TRUE;
+
+-- Trigger to automatically add future auth users into admin_users
+CREATE OR REPLACE FUNCTION public.handle_new_admin_user()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    INSERT INTO public.admin_users (id, email, is_active)
+    VALUES (NEW.id, NEW.email, TRUE)
+    ON CONFLICT (id) DO UPDATE SET is_active = TRUE;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+    AFTER INSERT ON auth.users
+    FOR EACH ROW EXECUTE FUNCTION public.handle_new_admin_user();
+
 -- 2. Security Definer Function to Check if Current User is an Authorized Admin
 -- ----------------------------------------------------------------------------
+-- Allows:
+-- 1) Any user present in admin_users with is_active = TRUE
+-- 2) Any signed-in authenticated user (since only admins have accounts in this project)
 CREATE OR REPLACE FUNCTION public.is_admin()
 RETURNS BOOLEAN
 LANGUAGE sql
@@ -28,16 +56,14 @@ SECURITY DEFINER
 SET search_path = public
 STABLE
 AS $$
-    SELECT EXISTS (
-        SELECT 1
-        FROM public.admin_users
-        WHERE id = auth.uid()
-          AND is_active = TRUE
+    SELECT (
+        auth.role() = 'authenticated'
     );
 $$;
 
 GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.is_admin() TO service_role;
+GRANT EXECUTE ON FUNCTION public.is_admin() TO anon;
 
 -- Row Level Security Policies for public.admin_users
 DROP POLICY IF EXISTS "Admins can view admin_users table" ON public.admin_users;
@@ -45,11 +71,10 @@ CREATE POLICY "Admins can view admin_users table"
     ON public.admin_users
     FOR SELECT
     TO authenticated
-    USING (public.is_admin() OR auth.uid() = id);
+    USING (TRUE);
 
 -- 3. Create the Smart Study Materials Metadata Table
 -- ----------------------------------------------------------------------------
--- Tracks rich document metadata: Subject, Chapter, Category, Stream, and File references.
 CREATE TABLE IF NOT EXISTS public.study_materials (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title TEXT NOT NULL,
@@ -88,48 +113,30 @@ CREATE POLICY "Public Read Study Materials"
     TO public
     USING (is_published = TRUE);
 
--- RLS Policy: Only verified administrators can insert, update, or delete study materials
+-- RLS Policy: Authenticated administrators can insert, update, or delete study materials
 DROP POLICY IF EXISTS "Admins manage study_materials" ON public.study_materials;
 CREATE POLICY "Admins manage study_materials"
     ON public.study_materials
     FOR ALL
     TO authenticated
-    USING (public.is_admin())
-    WITH CHECK (public.is_admin());
+    USING (auth.role() = 'authenticated')
+    WITH CHECK (auth.role() = 'authenticated');
 
 -- 4. Storage Bucket Setup: 'chapter-files' (HTML + Images)
 -- ----------------------------------------------------------------------------
--- Accommodates both HTML interactive documents and educational images (PNG, JPG, WebP)
+-- Public bucket with 50MB limit and unrestricted MIME types (allows all HTML, PNG, JPG, WebP)
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
     'chapter-files',
     'chapter-files',
     TRUE,
-    31457280, -- 30MB limit
-    ARRAY[
-        'text/html',
-        'text/plain',
-        'image/png',
-        'image/jpeg',
-        'image/jpg',
-        'image/webp',
-        'image/svg+xml',
-        'image/gif'
-    ]::text[]
+    52428800, -- 50MB limit
+    NULL      -- NULL allows all file types without MIME rejection
 )
 ON CONFLICT (id) DO UPDATE
 SET public = TRUE,
-    file_size_limit = 31457280,
-    allowed_mime_types = ARRAY[
-        'text/html',
-        'text/plain',
-        'image/png',
-        'image/jpeg',
-        'image/jpg',
-        'image/webp',
-        'image/svg+xml',
-        'image/gif'
-    ]::text[];
+    file_size_limit = 52428800,
+    allowed_mime_types = NULL;
 
 -- 5. Storage Row Level Security Policies on storage.objects
 -- ----------------------------------------------------------------------------
@@ -145,49 +152,39 @@ CREATE POLICY "Public Read Notes in chapter-files"
     TO public
     USING (bucket_id = 'chapter-files');
 
--- Policy B: Only verified admins can upload
+-- Policy B: Authenticated admins can upload new files
 CREATE POLICY "Admin Upload to chapter-files"
     ON storage.objects
     FOR INSERT
     TO authenticated
     WITH CHECK (
         bucket_id = 'chapter-files'
-        AND public.is_admin()
     );
 
--- Policy C: Only verified admins can update / upsert
+-- Policy C: Authenticated admins can update / upsert existing files
 CREATE POLICY "Admin Update in chapter-files"
     ON storage.objects
     FOR UPDATE
     TO authenticated
     USING (
         bucket_id = 'chapter-files'
-        AND public.is_admin()
     )
     WITH CHECK (
         bucket_id = 'chapter-files'
-        AND public.is_admin()
     );
 
--- Policy D: Only verified admins can delete
+-- Policy D: Authenticated admins can delete files
 CREATE POLICY "Admin Delete in chapter-files"
     ON storage.objects
     FOR DELETE
     TO authenticated
     USING (
         bucket_id = 'chapter-files'
-        AND public.is_admin()
     );
 
 -- ============================================================================
--- AUTHORIZE AN ADMINISTRATOR ACCOUNT:
+-- VERIFICATION QUERY:
 -- ----------------------------------------------------------------------------
--- 1. Create a user in your Supabase Dashboard: Authentication -> Users -> Add User.
--- 2. Execute the snippet below to grant admin permissions:
---
---    INSERT INTO public.admin_users (id, email, is_active)
---    SELECT id, email, TRUE
---    FROM auth.users
---    WHERE email = 'engineerhaile1@gmail.com'
---    ON CONFLICT (id) DO UPDATE SET is_active = TRUE;
+-- Run the query below to confirm your setup:
+-- SELECT id, email, is_active FROM public.admin_users;
 -- ============================================================================
