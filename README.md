@@ -86,7 +86,7 @@ In Supabase **SQL Editor**, run:
 INSERT INTO public.admin_users (id, email, is_active)
 SELECT id, email, TRUE
 FROM auth.users
-WHERE email = 'engineerhaile1@gmail.com'
+WHERE email = 'eexamples@gmail.com'
 ON CONFLICT (id) DO UPDATE SET is_active = TRUE;
 ```
 
